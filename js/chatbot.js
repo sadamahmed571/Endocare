@@ -1,624 +1,597 @@
 (function () {
-    "use strict";
-
     const isEnglish = window.location.pathname.includes('/en/');
 
-    // ─── State ───────────────────────────────────────────────────────────────
-    const STATE = {
-        sessionId: null,
-        isOpen: false,
-        isProcessing: false,
-        isOffline: !navigator.onLine,
-        messages: [],
-        unsentText: '',
-    };
+    let isProcessing = false;
+    let isOpen = false;
+    let fab, overlay, closeBtn, messagesEl, inputEl, sendBtn;
 
-    // ─── DOM refs ────────────────────────────────────────────────────────────
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => document.querySelectorAll(sel);
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => document.querySelectorAll(selector);
 
-    let fab, overlay, closeBtn, messagesEl, inputEl, sendBtn, charCount, quickRepliesEl, networkBanner;
-
-    // ─── Utils ───────────────────────────────────────────────────────────────
-    function generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0;
-            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+    function formatText(text) {
+        if (!text) return '';
+        let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        formatted = formatted.replace(/\n/g, '<br>');
+        return formatted;
     }
 
-    function isoNow() {
-        return new Date().toISOString();
-    }
-
-    function formatTime(iso) {
-        const d = new Date(iso);
-        return d.toLocaleTimeString(isEnglish ? 'en-US' : 'ar-YE', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    // ─── Storage ─────────────────────────────────────────────────────────────
-    function saveConversation() {
-        try {
-            const data = {
-                sessionId: STATE.sessionId,
-                messages: STATE.messages,
-                timestamp: Date.now(),
-            };
-            localStorage.setItem('endocare_chat_history', JSON.stringify(data));
-        } catch (e) { /* storage full or blocked */ }
-    }
-
-    function loadConversation() {
-        try {
-            const raw = localStorage.getItem('endocare_chat_history');
-            if (!raw) return null;
-            const data = JSON.parse(raw);
-            if (data && data.sessionId && Array.isArray(data.messages)) {
-                return data;
-            }
-        } catch (e) { /* ignore */ }
-        return null;
-    }
-
-    function clearConversation() {
-        try {
-            localStorage.removeItem('endocare_chat_history');
-        } catch (e) { /* ignore */ }
-    }
-
-    // ─── Render ──────────────────────────────────────────────────────────────
-    function renderMessages() {
-        messagesEl.innerHTML = '';
-        STATE.messages.forEach(function (msg) {
-            appendMessageDOM(msg, false);
-        });
-        scrollToBottom();
-    }
-
-    function appendMessageDOM(msg, doScroll) {
-        const div = document.createElement('div');
-        div.className = 'message';
-
-        if (msg.role === 'bot') {
-            div.classList.add('message-bot');
-            if (msg.type === 'error') div.classList.add('message-error');
-            if (msg.type === 'out-of-scope') div.classList.add('message-out-of-scope');
+    async function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
         } else {
-            div.classList.add('message-user');
-        }
-
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
-        if (msg.role === 'user' && msg.status === 'pending') {
-            bubble.classList.add('pending');
-        }
-        bubble.textContent = msg.text;
-
-        div.appendChild(bubble);
-
-        if (msg.role === 'bot' && msg.type === 'error') {
-            const retry = document.createElement('button');
-            retry.className = 'retry-btn';
-            retry.textContent = isEnglish ? 'Retry' : 'إعادة المحاولة';
-            retry.addEventListener('click', function () {
-                retrySend(msg._originalText || '');
-            });
-            div.appendChild(retry);
-        }
-
-        const time = document.createElement('div');
-        time.className = 'message-time';
-        time.textContent = formatTime(msg.timestamp);
-        div.appendChild(time);
-
-        messagesEl.appendChild(div);
-        if (doScroll !== false) scrollToBottom();
-    }
-
-    function scrollToBottom() {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function showTyping() {
-        let el = document.querySelector('.typing-indicator');
-        if (!el) {
-            el = document.createElement('div');
-            el.className = 'typing-indicator active';
-            el.id = 'chatbot-typing';
-            el.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-            messagesEl.appendChild(el);
-        } else {
-            el.classList.add('active');
-        }
-        scrollToBottom();
-    }
-
-    function hideTyping() {
-        const el = document.querySelector('.typing-indicator');
-        if (el) el.classList.remove('active');
-    }
-
-    function showQuickReplies() {
-        if (quickRepliesEl) quickRepliesEl.classList.remove('hidden');
-    }
-
-    function hideQuickReplies() {
-        if (quickRepliesEl) quickRepliesEl.classList.add('hidden');
-    }
-
-    // ─── Bot messages ────────────────────────────────────────────────────────
-    function addBotMessage(text, type) {
-        const msg = {
-            id: generateUUID(),
-            role: 'bot',
-            text: text,
-            timestamp: isoNow(),
-            type: type || 'normal',
-        };
-        STATE.messages.push(msg);
-        appendMessageDOM(msg);
-        saveConversation();
-        return msg;
-    }
-
-    function addUserMessage(text) {
-        const msg = {
-            id: generateUUID(),
-            role: 'user',
-            text: text.trim(),
-            timestamp: isoNow(),
-            status: 'pending',
-            category: null,
-        };
-        STATE.messages.push(msg);
-        appendMessageDOM(msg);
-        saveConversation();
-        return msg;
-    }
-
-    function markLastUserSent() {
-        for (let i = STATE.messages.length - 1; i >= 0; i--) {
-            if (STATE.messages[i].role === 'user' && STATE.messages[i].status === 'pending') {
-                STATE.messages[i].status = 'sent';
-                break;
-            }
-        }
-        saveConversation();
-    }
-
-    let companyProfile = null;
-
-    async function loadCompanyProfile() {
-        if (!companyProfile) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
             try {
-                const path = isEnglish ? '/en/bot_core/company_profile.json' : '/ar/bot_core/company_profile.json';
-                let res = await fetch(path);
-                if (!res.ok && isEnglish) {
-                    res = await fetch('/ar/bot_core/company_profile.json');
-                }
+                document.execCommand('copy');
+                textArea.remove();
+                return Promise.resolve();
+            } catch (error) {
+                textArea.remove();
+                return Promise.reject(error);
+            }
+        }
+    }
+
+    async function callGemini(text) {
+        let systemPrompt = isEnglish 
+            ? `You are NovaBot, the AI medical and technical assistant representing NovaCare Yemen (نوفاكير للتوريدات الدوائية).
+CRITICAL RESPONSE INSTRUCTIONS:
+1. CONCISENESS FIRST: Keep your initial and general responses EXTREMELY concise, brief, and direct (maximum 2 to 3 short sentences or clear bullet points). Do NOT give verbose introductions or long company overviews unless explicitly asked.
+2. Get straight to answering the user's question directly.
+3. Provide accurate information about pharmaceutical supplies, vitamins, hormones, APIs, and medical equipment.
+4. Do not prescribe specific treatments or dosages unless quoted from verified product guides. Direct users to consult a doctor when appropriate.
+5. Always be polite, professional, and helpful.`
+            : `أنت NovaBot، المساعد الطبي والتقني الذكي لشركة نوفاكير للتوريدات الدوائية (NovaCare Yemen).
+تعليمات هامة وصارمة جداً وطريقة الإجابة:
+1. الاختصار والتركيز: اجعل إجاباتك وخاصة الإجابة الأولى مختصرة جداً ومباشرة وموجزة (في حدود سطرين أو ثلاثة أسطر أو نقاط سريعة). تجنب تماماً المقدمات الإنشائية الطويلة أو سرد تعريف الشركة وتاريخها ما لم يُطلب منك ذلك صراحة.
+2. ادخل في صلب الموضوع ومباشرة في إجابة السؤال دون تكرار عبارات الترحيب في كل رسالة.
+3. قدم معلومات طبية وتقنية دقيقة حول التوريدات الصيدلانية، الفيتامينات، الهرمونات، والمواد الفعالة.
+4. يمنع تقديم وصفات طبية نهائية أو تحديد جرعات علاجية. انصح باستشارة الطبيب المختص عند الحاجة.
+5. كن لبقاً ومهنياً ومباشراً في إجابتك.`;
+
+        try {
+            // First try calling the local backend if it's running
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                const res = await fetch('/api/chat', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text, systemPrompt })
+                });
                 if (res.ok) {
-                    companyProfile = await res.json();
-                }
-            } catch (e) {
-                console.error("Error loading company profile:", e);
-            }
-        }
-        return companyProfile;
-    }
-
-    async function processBotQuery(userText) {
-        const text = userText.trim();
-        const lowerText = text.toLowerCase();
-
-        // 1. Triage: Check for Operations & Sales (Company Profile)
-        const matchesSales = isEnglish ?
-            (lowerText.includes('buy') || lowerText.includes('purchase') || lowerText.includes('contact') || lowerText.includes('management') || lowerText.includes('support') || lowerText.includes('address') || lowerText.includes('phone') || lowerText.includes('customer service') || lowerText.includes('hours') || lowerText.includes('order')) :
-            (text.includes('شراء') || text.includes('تواصل') || text.includes('ادارة') || text.includes('دعم') || text.includes('عنوان') || text.includes('هاتف') || text.includes('خدمة عملاء') || text.includes('مواعيد') || text.includes('طلب'));
-
-        if (matchesSales) {
-            const profile = await loadCompanyProfile();
-            if (profile) {
-                if (isEnglish) {
-                    return {
-                        answer: `You can contact us via the following methods:\n- Customer Service: ${profile.contact.customerService}\n- Email: ${profile.contact.email}\n- Working Hours: ${profile.workingHoursEn || profile.workingHours}\n- Address: ${profile.location.mainBranch.addressEn || profile.location.mainBranch.address}, ${profile.location.countryEn || profile.location.country}.`,
-                        type: 'normal'
-                    };
-                } else {
-                    return {
-                        answer: `يمكنك التواصل معنا عبر الطرق التالية:\n- خدمة العملاء: ${profile.contact.customerService}\n- البريد الإلكتروني: ${profile.contact.email}\n- أوقات العمل: ${profile.workingHours}\n- العنوان: ${profile.location.mainBranch.address}، ${profile.location.country}.`,
-                        type: 'normal'
-                    };
-                }
-            }
-        }
-
-        // 2. Local Database Sync (Products checking)
-        try {
-            let syncModule;
-            try {
-                syncModule = await import(isEnglish ? '../en/bot_core/site_sync_config.js' : '../ar/bot_core/site_sync_config.js');
-            } catch (importErr) {
-                // Fallback to ar/bot_core/site_sync_config.js if en/ doesn't exist
-                syncModule = await import('../ar/bot_core/site_sync_config.js');
-            }
-            const SiteSyncConfig = syncModule.default;
-            const matchedProducts = SiteSyncConfig.searchProducts(text);
-
-            if (matchedProducts && matchedProducts.length > 0) {
-                const p = matchedProducts[0];
-                if (isEnglish) {
-                    return {
-                        answer: `We found a product matching your inquiry in our medical catalog:\n\n**${p.nameEn || p.nameAr}**\n- Category: ${p.categoryEn || p.category}\n- Country of Origin: ${p.originEn || p.origin}\n- Description: ${p.descEn || p.desc || 'No description available'}\n\nWould you like to know more?`,
-                        type: 'normal'
-                    };
-                } else {
-                    return {
-                        answer: `وجدنا منتجاً يطابق استفسارك من الكتالوج الطبي الخاص بنا:\n\n**${p.nameAr} (${p.nameEn})**\n- التصنيف: ${p.category}\n- بلد المنشأ: ${p.origin}\n- الوصف: ${p.desc || 'لا يوجد وصف متاح'}\n\nهل ترغب في معرفة المزيد؟`,
-                        type: 'normal'
-                    };
+                    const data = await res.json();
+                    if (data && data.candidates && data.candidates.length > 0) {
+                        return data.candidates[0].content.parts[0].text;
+                    }
                 }
             }
         } catch (e) {
-            console.error("Error linking with site sync logic:", e);
+            console.log("Local backend not available, falling back to direct API call...");
         }
 
-        // 3. Fallback (Knowledge Base / Web logic simplified simulation)
-        var answersAr = {
-            'شحنة': 'بخصوص الشحنات والتوريد، نعمل وفق أعلى معايير سلسلة التبريد لضمان الجودة. يمكنك طلب توريد من قسم الطلبات.',
-            'كتالوج': 'يتوفر لدينا كتالوج شامل يشمل الفيتامينات والهرمونات. يمكنك استخدام محرك البحث في قسم المنتجات.',
-            'علمي': 'الفيتامينات مثل D3 تلعب دوراً محورياً في دعم المناعة. الهرمونات البديلة تستخدم تحت إشراف طبي. تُعد هذه المعلومات إرشادية وتثقيفية، ويُنصح دائماً باستشارة طبيبك المختص.'
+        // Fallback: Call Gemini API directly from the frontend (for static HTML / file:// viewing)
+        const apiKey = window.__ENV__ && window.__ENV__.GEMINI_API_KEY;
+        if (!apiKey) throw new Error("API Key is missing from frontend environment");
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+        const payload = {
+            contents: [{ parts: [{ text: `${systemPrompt}\n\nUser: ${text}` }] }]
         };
 
-        var answersEn = {
-            'شحنة': 'Regarding shipments and supply, we operate according to the highest cold chain standards to guarantee quality. You can request supply from the orders section.',
-            'كتالوج': 'We have a comprehensive catalog that includes vitamins and hormones. You can use the search bar in the products section.',
-            'علمي': 'Vitamins such as D3 play a pivotal role in supporting immunity. Hormone replacement therapies are used under medical supervision. This information is for guidance and educational purposes only; it is always recommended to consult your specialist doctor.'
-        };
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-        var answers = isEnglish ? answersEn : answersAr;
-        var reply = answers['علمي'];
-
-        const matchesShipment = isEnglish ?
-            (lowerText.includes('ship') || lowerText.includes('supply') || lowerText.includes('logist')) :
-            (text.includes('شحن') || text.includes('توريد') || text.includes('لوجست'));
-
-        const matchesCatalog = isEnglish ?
-            (lowerText.includes('catalog') || lowerText.includes('product')) :
-            (text.includes('كتالوج') || text.includes('منتجات'));
-
-        const matchesPrice = isEnglish ?
-            (lowerText.includes('price') || lowerText.includes('discount')) :
-            (text.includes('سعر') || text.includes('خصم'));
-
-        if (matchesShipment) {
-            reply = answers['شحنة'];
-        } else if (matchesCatalog) {
-            reply = answers['كتالوج'];
-        } else if (matchesPrice) {
-            reply = isEnglish ? 
-                'For commercial pricing inquiries, please contact sales directly. How else can I help you?' :
-                'للاستفسار عن الأسعار التجارية، يرجى التواصل مع المبيعات مباشرة. كيف يمكنني مساعدتك بخلاف ذلك؟';
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP Error: ${res.status} - ${errText}`);
         }
 
-        return {
-            answer: reply,
-            type: 'normal'
-        };
-    }
-
-    function callBotAPI(userText, sessionId) {
-        return processBotQuery(userText);
-    }
-
-    // ─── Send flow ───────────────────────────────────────────────────────────
-    function retrySend(text) {
-        // Remove the last error message from bot
-        for (let i = STATE.messages.length - 1; i >= 0; i--) {
-            if (STATE.messages[i].role === 'bot' && STATE.messages[i].type === 'error') {
-                STATE.messages.splice(i, 1);
-                break;
-            }
+        const data = await res.json();
+        if (data && data.candidates && data.candidates.length > 0) {
+            return data.candidates[0].content.parts[0].text;
         }
-        saveConversation();
-        renderMessages();
-        sendMessage(text, true);
-    }
-
-    function sendMessage(text, isRetry) {
-        if (!text || !text.trim()) return;
-        if (STATE.isProcessing) return;
-        if (STATE.isOffline) {
-            STATE.unsentText = text;
-            inputEl.value = text;
-            updateCharCount();
-            return;
-        }
-
-        STATE.isProcessing = true;
-        sendBtn.disabled = true;
-        hideQuickReplies();
-
-        if (!isRetry) {
-            addUserMessage(text);
-        }
-        markLastUserSent();
-        inputEl.value = '';
-        updateCharCount();
-        showTyping();
-
-        callBotAPI(text, STATE.sessionId)
-            .then(function (res) {
-                hideTyping();
-                addBotMessage(res.answer, res.type);
-                STATE.isProcessing = false;
-                sendBtn.disabled = false;
-                if (res.type !== 'out-of-scope') {
-                    showQuickReplies();
-                }
-                saveConversation();
-            })
-            .catch(function (err) {
-                hideTyping();
-                const errorMsg = isEnglish ? 
-                    'Sorry, I encountered a connection issue. Please check your internet and try again.' :
-                    'عذراً، واجهت مشكلة في الاتصال. يرجى التحقق من الإنترنت وإعادة المحاولة.';
-                const msg = {
-                    id: generateUUID(),
-                    role: 'bot',
-                    text: errorMsg,
-                    timestamp: isoNow(),
-                    type: 'error',
-                    _originalText: text,
-                };
-                STATE.messages.push(msg);
-                appendMessageDOM(msg);
-                STATE.isProcessing = false;
-                sendBtn.disabled = false;
-                showQuickReplies();
-                saveConversation();
-            });
-    }
-
-    // ─── Welcome / Triage ────────────────────────────────────────────────────
-    function showWelcome() {
-        const saved = loadConversation();
-        if (saved && saved.messages && saved.messages.length > 0) {
-            STATE.sessionId = saved.sessionId || generateUUID();
-            STATE.messages = saved.messages;
-            renderMessages();
-            hideQuickReplies();
-            return;
-        }
-
-        STATE.sessionId = generateUUID();
-        STATE.messages = [];
-        saveConversation();
-
-        if (isEnglish) {
-            addBotMessage('Welcome to Endocare! I am your AI assistant. Are you looking for information about hormone shipments and supply, or do you have a scientific question about vitamins?');
-        } else {
-            addBotMessage('مرحباً بك في Endocare! أنا مساعدك الذكي. هل تبحث عن معلومات حول شحنات وتوريد الهرمونات، أم لديك سؤال علمي حول الفيتامينات؟');
-        }
-        showQuickReplies();
-    }
-
-    // ─── Input auto-resize + char count ──────────────────────────────────────
-    function updateCharCount() {
-        const len = inputEl.value.length;
-        charCount.textContent = len;
-    }
-
-    function autoResize() {
-        inputEl.style.height = 'auto';
-        inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
-    }
-
-    // ─── Network status ──────────────────────────────────────────────────────
-    function handleOnline() {
-        STATE.isOffline = false;
-        networkBanner.classList.add('d-none');
-        sendBtn.disabled = STATE.isProcessing;
-        if (STATE.unsentText) {
-            const text = STATE.unsentText;
-            STATE.unsentText = '';
-            sendMessage(text);
-        }
-    }
-
-    function handleOffline() {
-        STATE.isOffline = true;
-        networkBanner.classList.remove('d-none');
-        sendBtn.disabled = true;
-    }
-
-    // ─── Open / Close ────────────────────────────────────────────────────────
-    function openChat(e) {
-        if (e) {
-            e.stopPropagation();
-        }
-        if (!fab.classList.contains('expanded')) {
-            fab.classList.add('expanded');
-            return;
-        }
-        if (STATE.isOpen) return;
-        STATE.isOpen = true;
-        overlay.classList.add('open');
-        fab.style.display = 'none';
-        fab.classList.remove('expanded'); // Reset expanded state
-        showWelcome();
-        setTimeout(function () { inputEl.focus(); }, 400);
-    }
-
-    function closeChat() {
-        if (!STATE.isOpen) return;
-        STATE.isOpen = false;
-        overlay.classList.remove('open');
-        fab.style.display = 'flex';
-    }
-
-    // ─── Quick Reply handler ─────────────────────────────────────────────────
-    function handleQuickReply(e) {
-        const btn = e.currentTarget;
-        const query = btn.getAttribute('data-query') || '';
-        const label = btn.textContent.trim();
-        inputEl.value = label;
-        updateCharCount();
-        sendMessage(label);
-    }
-
-    // ─── Inject HTML ─────────────────────────────────────────────────────────
-    function injectChatbotHTML() {
-        if (document.getElementById('chatbot-overlay')) return; // Already injected
         
+        throw new Error("Invalid response from Gemini API");
+    }
+
+    function injectStyles() {
+        if ($('#novacare-chatbot-realchat-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'novacare-chatbot-realchat-styles';
+        style.textContent = `
+            .chatbot-messages {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 16px !important;
+                padding: 18px 14px !important;
+                background: #f8fafc !important;
+            }
+            .chat-item {
+                display: flex;
+                align-items: flex-end;
+                gap: 10px;
+                max-width: 92%;
+                animation: chatItemFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes chatItemFadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .chat-item-bot {
+                align-self: flex-start;
+            }
+            .chat-item-user {
+                align-self: flex-end;
+                flex-direction: row-reverse;
+            }
+            .chat-item-avatar {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                font-size: 16px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            }
+            .chat-avatar-bot {
+                background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+                color: #fff;
+            }
+            .chat-avatar-user {
+                background: #475569;
+                color: #fff;
+            }
+            .chat-item-content {
+                display: flex;
+                flex-direction: column;
+                min-width: 130px;
+            }
+            .chat-item-bot .chat-item-content {
+                align-items: flex-start;
+            }
+            .chat-item-user .chat-item-content {
+                align-items: flex-end;
+            }
+            .chat-sender-name {
+                font-size: 11px;
+                font-weight: 700;
+                color: #64748b;
+                margin-bottom: 4px;
+                padding: 0 4px;
+                letter-spacing: 0.2px;
+            }
+            .chat-bubble {
+                padding: 12px 16px;
+                border-radius: 18px;
+                font-size: 14px;
+                line-height: 1.6;
+                word-break: break-word;
+                position: relative;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            }
+            .bot-bubble {
+                background: #ffffff;
+                color: #1e293b;
+                border: 1px solid #e2e8f0;
+                border-bottom-left-radius: 4px;
+            }
+            [dir="rtl"] .bot-bubble, .chatbot-overlay:not([style*="direction: ltr"]) .chat-item-bot .bot-bubble {
+                border-bottom-left-radius: 18px;
+                border-bottom-right-radius: 4px;
+            }
+            .user-bubble {
+                background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+                color: #ffffff;
+                border-bottom-right-radius: 4px;
+                box-shadow: 0 3px 12px rgba(13, 148, 136, 0.25);
+            }
+            [dir="rtl"] .user-bubble, .chatbot-overlay:not([style*="direction: ltr"]) .chat-item-user .user-bubble {
+                border-bottom-right-radius: 18px;
+                border-bottom-left-radius: 4px;
+            }
+            .chat-text strong {
+                font-weight: 700;
+                color: inherit;
+            }
+            .chat-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-top: 8px;
+                padding-top: 6px;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+                font-size: 11px;
+                color: #94a3b8;
+            }
+            .user-bubble .chat-footer {
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                color: rgba(255, 255, 255, 0.85);
+            }
+            .chat-time {
+                font-size: 10.5px;
+                white-space: nowrap;
+            }
+            .chat-actions {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .chat-action-btn {
+                background: rgba(0,0,0,0.03);
+                border: 1px solid rgba(0,0,0,0.06);
+                color: #64748b;
+                border-radius: 6px;
+                padding: 4px 7px;
+                font-size: 12px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+                line-height: 1;
+                user-select: none;
+            }
+            .chat-action-btn:hover {
+                background: rgba(13, 148, 136, 0.1);
+                color: #0d9488;
+                border-color: rgba(13, 148, 136, 0.25);
+            }
+            .user-bubble .chat-action-btn {
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                color: #ffffff;
+            }
+            .user-bubble .chat-action-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                color: #ffffff;
+            }
+            .chat-action-btn.copied {
+                background: #dcfce7 !important;
+                color: #166534 !important;
+                border-color: #86efac !important;
+            }
+            .user-bubble .chat-action-btn.copied {
+                background: #ffffff !important;
+                color: #0d9488 !important;
+            }
+            .typing-dots {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 6px 8px;
+            }
+            .typing-dots span {
+                width: 7px;
+                height: 7px;
+                background: #0d9488;
+                border-radius: 50%;
+                display: inline-block;
+                animation: typingBounce 1.4s infinite ease-in-out both;
+            }
+            .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+            .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+            @keyframes typingBounce {
+                0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+                40% { transform: scale(1); opacity: 1; }
+            }
+            @media (max-width: 576px) {
+                .chatbot-overlay {
+                    bottom: 60px !important;
+                    left: 10px !important;
+                    right: 10px !important;
+                    width: auto !important;
+                    max-width: calc(100vw - 20px) !important;
+                    height: 440px !important;
+                    max-height: calc(100vh - 110px) !important;
+                    border-radius: 12px !important;
+                }
+                .chatbot-header {
+                    padding: 10px 12px !important;
+                }
+                .chatbot-avatar {
+                    width: 32px !important;
+                    height: 32px !important;
+                    font-size: 15px !important;
+                }
+                .chatbot-title {
+                    font-size: 13px !important;
+                }
+                .chatbot-status {
+                    font-size: 9.5px !important;
+                }
+                .chatbot-messages {
+                    gap: 12px !important;
+                    padding: 14px 10px !important;
+                }
+                .chat-item {
+                    gap: 8px;
+                    max-width: 95%;
+                }
+                .chat-item-avatar {
+                    width: 30px;
+                    height: 30px;
+                    font-size: 14px;
+                }
+                .chat-bubble {
+                    padding: 10px 13px;
+                    border-radius: 15px;
+                    font-size: 13px;
+                    line-height: 1.5;
+                }
+                .chat-sender-name {
+                    font-size: 10px;
+                    margin-bottom: 3px;
+                }
+                .chat-footer {
+                    margin-top: 6px;
+                    padding-top: 5px;
+                    gap: 8px;
+                }
+                .chat-time {
+                    font-size: 9.5px;
+                }
+                .chat-action-btn {
+                    padding: 3px 6px;
+                    font-size: 11px;
+                }
+                .chatbot-input-area {
+                    padding: 8px 10px 10px !important;
+                }
+                .chatbot-input-wrapper {
+                    padding: 4px 4px 4px 10px !important;
+                }
+                .chatbot-input {
+                    font-size: 12px !important;
+                }
+                .chatbot-send-btn {
+                    width: 32px !important;
+                    height: 32px !important;
+                    font-size: 13px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function injectHTML() {
+        if ($('#chatbot-overlay')) return;
+        injectStyles();
+
         const html = isEnglish ? `
-    <!-- Chat Overlay -->
     <div id="chatbot-overlay" class="chatbot-overlay" style="direction: ltr;">
         <div class="chatbot-container">
-            <!-- Header -->
             <div class="chatbot-header">
                 <div class="chatbot-header-info">
-                    <div class="chatbot-avatar">
-                        <i class="bi bi-robot"></i>
-                    </div>
+                    <div class="chatbot-avatar"><i class="bi bi-robot"></i></div>
                     <div>
-                        <h5 class="chatbot-title">Endocare AI Assistant</h5>
-                        <span class="chatbot-status">Online - Ready to answer your medical and logistical inquiries</span>
+                        <h5 class="chatbot-title">NovaCare AI Assistant</h5>
+                        <span class="chatbot-status">Online - Ready to answer</span>
                     </div>
                 </div>
-                <button id="chatbot-close" class="btn btn-sm chatbot-close-btn" aria-label="Close">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button id="chatbot-close" class="btn btn-sm chatbot-close-btn" aria-label="Close"><i class="bi bi-x-lg"></i></button>
             </div>
-
-            <!-- Messages -->
             <div id="chatbot-messages" class="chatbot-messages">
-                <!-- Messages will be rendered here by JS -->
             </div>
-
-            <!-- Network Banner -->
-            <div id="chatbot-network-banner" class="chatbot-network-banner d-none">
-                <i class="bi bi-wifi-off me-2"></i>
-                <span>Sorry, you are offline. Your message will be saved.</span>
-            </div>
-
-            <!-- Input Area -->
             <div class="chatbot-input-area">
                 <div class="chatbot-input-wrapper">
-                    <textarea id="chatbot-input" class="chatbot-input" rows="1" placeholder="Type your question here about hormones, vitamins, or our services..." maxlength="500"></textarea>
-                    <button id="chatbot-send" class="btn btn-primary chatbot-send-btn" aria-label="Send">
-                        <i class="bi bi-send"></i>
-                    </button>
+                    <textarea id="chatbot-input" class="chatbot-input" rows="1" placeholder="Type your question..." maxlength="500"></textarea>
+                    <button id="chatbot-send" class="btn btn-primary chatbot-send-btn" aria-label="Send"><i class="bi bi-send"></i></button>
                 </div>
-                <div class="chatbot-char-count"><span id="chatbot-char-count">0</span>/500</div>
             </div>
         </div>
     </div>` : `
-    <!-- Chat Overlay -->
     <div id="chatbot-overlay" class="chatbot-overlay">
         <div class="chatbot-container">
-            <!-- Header -->
             <div class="chatbot-header">
                 <div class="chatbot-header-info">
-                    <div class="chatbot-avatar">
-                        <i class="bi bi-robot"></i>
-                    </div>
+                    <div class="chatbot-avatar"><i class="bi bi-robot"></i></div>
                     <div>
-                        <h5 class="chatbot-title">مساعد Endocare AI</h5>
-                        <span class="chatbot-status">متصل - جاهز للإجابة على استفساراتك الطبية واللوجستية</span>
+                        <h5 class="chatbot-title">مساعد NovaCare AI</h5>
+                        <span class="chatbot-status">متصل - جاهز للإجابة</span>
                     </div>
                 </div>
-                <button id="chatbot-close" class="btn btn-sm chatbot-close-btn" aria-label="إغلاق">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button id="chatbot-close" class="btn btn-sm chatbot-close-btn" aria-label="إغلاق"><i class="bi bi-x-lg"></i></button>
             </div>
-
-            <!-- Messages -->
             <div id="chatbot-messages" class="chatbot-messages">
-                <!-- Messages will be rendered here by JS -->
             </div>
-
-            <!-- Network Banner -->
-            <div id="chatbot-network-banner" class="chatbot-network-banner d-none">
-                <i class="bi bi-wifi-off ms-2"></i>
-                <span>عذراً، أنت غير متصل بالإنترنت. سيتم حفظ رسالتك.</span>
-            </div>
-
-            <!-- Input Area -->
             <div class="chatbot-input-area">
-                <div class="chatbot-input-wrapper">
-                    <textarea id="chatbot-input" class="chatbot-input" rows="1" placeholder="اكتب سؤالك هنا حول الهرمونات، الفيتامينات، أو خدماتنا..." maxlength="500"></textarea>
-                    <button id="chatbot-send" class="btn btn-primary chatbot-send-btn" aria-label="إرسال">
-                        <i class="bi bi-send"></i>
-                    </button>
+                <div class="chatbot-input-wrapper">                    
+                    <textarea id="chatbot-input" class="chatbot-input" rows="1" placeholder="اكتب سؤالك هنا..." maxlength="500"></textarea>
+                    <button id="chatbot-send" class="btn btn-primary chatbot-send-btn" aria-label="إرسال"><i class="bi bi-send"></i></button>
                 </div>
-                <div class="chatbot-char-count"><span id="chatbot-char-count">0</span>/500</div>
             </div>
         </div>
     </div>`;
         const container = document.createElement('div');
-        container.id = 'endocare-chatbot-wrapper';
+        container.id = 'novacare-chatbot-wrapper';
         container.innerHTML = html;
         document.body.appendChild(container);
     }
 
-    // ─── Init ────────────────────────────────────────────────────────────────
-    function init() {
-        injectChatbotHTML();
+    function appendMessage(text, sender) {
+        if (!text) return;
+
+        const timeStr = new Date().toLocaleTimeString(isEnglish ? 'en-US' : 'ar-YE', { hour: '2-digit', minute: '2-digit' });
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `chat-item ${sender === 'user' ? 'chat-item-user' : 'chat-item-bot'}`;
+
+        const avatarIcon = sender === 'user' ? 'bi-person-fill' : 'bi-robot';
+        const avatarClass = sender === 'user' ? 'chat-avatar-user' : 'chat-avatar-bot';
+        const senderLabel = sender === 'user' ? (isEnglish ? 'You' : 'أنت') : (isEnglish ? 'NovaBot AI' : 'مساعد NovaBot');
+        const bubbleClass = sender === 'user' ? 'user-bubble' : 'bot-bubble';
+        const formattedContent = sender === 'user' ? text : formatText(text);
+
+        const copyLabel = isEnglish ? 'Copy' : 'نسخ';
+        const copiedLabel = isEnglish ? 'Copied!' : 'تم النسخ';
+
+        let actionsHtml = `
+            <button class="chat-action-btn copy-btn" title="${isEnglish ? 'Copy message' : 'نسخ الرسالة'}" aria-label="Copy">
+                <i class="bi bi-clipboard"></i>
+            </button>
+        `;
+
+        itemDiv.innerHTML = `
+            <div class="chat-item-avatar ${avatarClass}">
+                <i class="bi ${avatarIcon}"></i>
+            </div>
+            <div class="chat-item-content">
+                ${sender === 'bot' ? `<div class="chat-sender-name">${senderLabel}</div>` : ''}
+                <div class="chat-bubble ${bubbleClass}">
+                    <div class="chat-text">${formattedContent}</div>
+                    <div class="chat-footer">
+                        <span class="chat-time">${timeStr}</span>
+                        <div class="chat-actions">
+                            ${actionsHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const copyBtn = itemDiv.querySelector('.copy-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await copyToClipboard(text);
+                    copyBtn.classList.add('copied');
+                    copyBtn.innerHTML = `<i class="bi bi-check2"></i>`;
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.innerHTML = `<i class="bi bi-clipboard"></i>`;
+                    }, 2000);
+                } catch (err) {
+                    console.error('Copy failed', err);
+                }
+            });
+        }
+
+        messagesEl.appendChild(itemDiv);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+        const id = 'typing-indicator';
+        if ($('#' + id)) return;
         
-        // Initialize DOM refs
+        const itemDiv = document.createElement('div');
+        itemDiv.id = id;
+        itemDiv.className = 'chat-item chat-item-bot';
+        itemDiv.innerHTML = `
+            <div class="chat-item-avatar chat-avatar-bot">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div class="chat-item-content">
+                <div class="chat-sender-name">${isEnglish ? 'NovaBot AI' : 'مساعد NovaBot'}</div>
+                <div class="chat-bubble bot-bubble">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        messagesEl.appendChild(itemDiv);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideTyping() {
+        const el = $('#typing-indicator');
+        if (el) el.remove();
+    }
+
+    async function handleSend() {
+        if (isProcessing) return;
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        inputEl.value = '';
+        appendMessage(text, 'user');
+
+        isProcessing = true;
+        showTyping();
+
+        try {
+            const answer = await callGemini(text);
+            hideTyping();
+            appendMessage(answer, 'bot');
+        } catch (err) {
+            console.error("Gemini Error:", err);
+            hideTyping();
+            const errMsg = isEnglish 
+                ? 'We apologize, the AI assistant is temporarily unavailable. Please try again later.' 
+                : 'نعتذر، المساعد الذكي غير متوفر حالياً. يرجى المحاولة في وقت لاحق.';
+            appendMessage(errMsg, 'bot');
+        } finally {
+            isProcessing = false;
+            inputEl.focus();
+        }
+    }
+
+    function openChat(e) {
+        if (e) e.stopPropagation();
+        if (!fab.classList.contains('expanded')) {
+            fab.classList.add('expanded');
+            return;
+        }
+        if (isOpen) return;
+        isOpen = true;
+        overlay.classList.add('open');
+        fab.style.display = 'none';
+        fab.classList.remove('expanded');
+        setTimeout(() => inputEl.focus(), 400);
+    }
+
+    function closeChat() {
+        if (!isOpen) return;
+        isOpen = false;
+        overlay.classList.remove('open');
+        fab.style.display = 'flex';
+    }
+
+    function init() {
+        injectHTML();
         fab = $('#chatbot-fab');
         overlay = $('#chatbot-overlay');
         closeBtn = $('#chatbot-close');
         messagesEl = $('#chatbot-messages');
         inputEl = $('#chatbot-input');
         sendBtn = $('#chatbot-send');
-        charCount = $('#chatbot-char-count');
-        quickRepliesEl = $('#chatbot-quick-replies');
-        networkBanner = $('#chatbot-network-banner');
 
-        // Event listeners
-        fab.addEventListener('click', openChat);
-        closeBtn.addEventListener('click', closeChat);
-
-        sendBtn.addEventListener('click', function () {
-            sendMessage(inputEl.value);
-        });
-
-        inputEl.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage(inputEl.value);
-            }
-        });
-
-        inputEl.addEventListener('input', function () {
-            updateCharCount();
-            autoResize();
-        });
-
-        // Quick replies
-        $$('.quick-reply-btn').forEach(function (btn) {
-            btn.addEventListener('click', handleQuickReply);
-        });
-
-        // Network events
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        // Initial offline check
-        if (STATE.isOffline) {
-            handleOffline();
+        if (fab) fab.addEventListener('click', openChat);
+        if (closeBtn) closeBtn.addEventListener('click', closeChat);
+        if (sendBtn) sendBtn.addEventListener('click', handleSend);
+        if (inputEl) {
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
         }
 
-        // Load conversation from storage on page load to restore UI if needed
-        // Chat only fully opens on FAB click
+        if (messagesEl && messagesEl.children.length === 0) {
+            const welcomeMsg = isEnglish
+                ? "Hello! 👋 I'm NovaBot, AI medical assistant for NovaCare Yemen. How can I help you today?"
+                : "مرحباً بك! 👋 أنا NovaBot، المساعد الذكي لشركة نوفاكير للتوريدات الدوائية. كيف يمكنني مساعدتك اليوم؟";
+            appendMessage(welcomeMsg, 'bot');
+        }
     }
 
-    // ─── Kickoff ─────────────────────────────────────────────────────────────
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
-
 })();

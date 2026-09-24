@@ -145,7 +145,7 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="pv-consent">
                                     <label class="form-check-label small" for="pv-consent">
-                                        I agree to transfer my data and the reported case data to the Pharmacovigilance Department at EndoCare and process it in accordance with the Privacy Policy.
+                                        I agree to transfer my data and the reported case data to the Pharmacovigilance Department at NovaCare and process it in accordance with the Privacy Policy.
                                     </label>
                                 </div>
                             </div>
@@ -279,7 +279,7 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="pv-consent">
                                     <label class="form-check-label small" for="pv-consent">
-                                        أوافق على نقل بياناتي وبيانات الحالة المبلغ عنها إلى إدارة اليقظة الدوائية في EndoCare ومعالجتها وفقاً لسياسة الخصوصية.
+                                        أوافق على نقل بياناتي وبيانات الحالة المبلغ عنها إلى إدارة اليقظة الدوائية في NovaCare ومعالجتها وفقاً لسياسة الخصوصية.
                                     </label>
                                 </div>
                             </div>
@@ -297,7 +297,7 @@
     </div>`;
 
         const wrapper = document.createElement('div');
-        wrapper.id = 'endocare-pv-wrapper';
+        wrapper.id = 'novacare-pv-wrapper';
         wrapper.innerHTML = html;
         document.body.appendChild(wrapper);
     }
@@ -399,14 +399,13 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = isEnglish ? '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Sending...' : '<span class="spinner-border spinner-border-sm me-2" role="status"></span>جارٍ الإرسال...';
 
-        setTimeout(function () {
+        setTimeout(async function () {
             STATE.isSubmitting = false;
             submitBtn.disabled = false;
             submitBtn.innerHTML = isEnglish ? '<i class="bi bi-send-check me-2"></i>Submit Report' : '<i class="bi bi-send-check me-2"></i>إرسال التقرير';
 
             if (window.db && window.db.addPVReport) {
-                // transform object slightly to match admin table expectations if needed
-                window.db.addPVReport({
+                await window.db.addPVReport({
                     id: Date.now(),
                     ticket: report.ticket,
                     product: report.substance,
@@ -436,7 +435,6 @@
         modalEl = document.getElementById('pvModal');
         submitBtn = document.getElementById('pv-submit-btn');
 
-        // We only really strictly need the submitBtn to be present to function.
         if (!submitBtn) return;
 
         var substanceInput = get$('pv-substance');

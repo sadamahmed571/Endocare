@@ -1,170 +1,293 @@
-// js/db.js
-// Fake Database using localStorage
+// js/db.js - Cloud Database (Supabase Only)
+// All methods are asynchronous and interact directly with Supabase
 
-const INITIAL_ARTICLES = [];
-
-// Initialize DB
-if (!localStorage.getItem("endocare_articles")) {
-    localStorage.setItem("endocare_articles", JSON.stringify(INITIAL_ARTICLES));
+function mapToTable(row) {
+    if (!row) return row;
+    var obj = {};
+    for (var k in row) {
+        var camel = k.replace(/_([a-z])/g, function(g) { return g[1].toUpperCase(); });
+        obj[camel] = row[k];
+    }
+    return obj;
 }
 
-// API for Articles
-const db = {
-    getArticles: function() {
-        return JSON.parse(localStorage.getItem("endocare_articles")) || [];
+function mapFromTable(obj) {
+    var row = {};
+    for (var k in obj) {
+        var snake = k.replace(/[A-Z]/g, function(c) { return '_' + c.toLowerCase(); });
+        row[snake] = obj[k];
+    }
+    return row;
+}
+
+function mapArrayToTable(rows) {
+    if (!rows) return [];
+    return rows.map(mapToTable);
+}
+
+function getSupabase() {
+    return window.__supabase || null;
+}
+
+var _supabaseReady = false;
+var _pendingInitCallbacks = [];
+
+function initSupabase() {
+    if (_supabaseReady) return;
+    var sb = getSupabase();
+    if (!sb) {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.__supabase) {
+                _supabaseReady = true;
+                _notifyInitCallbacks();
+            }
+        });
+    } else {
+        _supabaseReady = true;
+        _notifyInitCallbacks();
+    }
+}
+
+function _notifyInitCallbacks() {
+    for (var i = 0; i < _pendingInitCallbacks.length; i++) {
+        _pendingInitCallbacks[i]();
+    }
+    _pendingInitCallbacks = [];
+}
+
+function onSupabaseReady(cb) {
+    if (_supabaseReady) { cb(); return; }
+    _pendingInitCallbacks.push(cb);
+}
+
+var _refreshListeners = {};
+function _triggerRefresh(type) {
+    var list = _refreshListeners[type];
+    if (list) {
+        for (var i = 0; i < list.length; i++) { list[i](); }
+    }
+}
+function onRefresh(type, cb) {
+    if (!_refreshListeners[type]) _refreshListeners[type] = [];
+    _refreshListeners[type].push(cb);
+}
+
+var db = {
+    _ready: false,
+    init: function() {
+        if (this._ready) return Promise.resolve();
+        var self = this;
+        return new Promise(function(resolve) {
+            onSupabaseReady(function() {
+                self._ready = true;
+                resolve();
+            });
+            setTimeout(function() {
+                if (!self._ready) {
+                    self._ready = true;
+                    resolve();
+                }
+            }, 5000);
+        });
     },
-    getPublicArticles: function() {
-        return this.getArticles().filter(a => a.status === 'active');
+
+    // ==================== ARTICLES ====================
+    getArticles: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('articles').select('*');
+        return mapArrayToTable(res.data || []);
     },
-    getArticleById: function(id) {
-        return this.getArticles().find(a => a.id == id);
+    getPublicArticles: async function() {
+        var articles = await this.getArticles();
+        return articles.filter(function(a) { return a.status === 'active'; });
     },
-    
-    // Site Settings Methods
-    getSiteSettings: function() {
-        const isEnglish = window.location.pathname.includes('/en/');
+    getArticleById: async function(id) {
+        var articles = await this.getArticles();
+        return articles.find(function(a) { return a.id == id; });
+    },
+    addArticle: async function(article) {
+        article.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('articles').insert(mapFromTable(article));
+            _triggerRefresh('articles');
+        }
+    },
+    updateArticle: async function(id, updatedData) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('articles').update(mapFromTable(updatedData)).eq('id', id);
+            _triggerRefresh('articles');
+        }
+    },
+    deleteArticle: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('articles').delete().eq('id', id);
+            _triggerRefresh('articles');
+        }
+    },
+
+    // ==================== PRODUCTS ====================
+    getProducts: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('products').select('*');
+        return mapArrayToTable(res.data || []);
+    },
+    getFeaturedProducts: async function() {
+        var products = await this.getProducts();
+        return products.filter(function(p) { return p.featured === 'yes' && p.status === 'نشط'; });
+    },
+    getProductById: async function(id) {
+        var products = await this.getProducts();
+        return products.find(function(p) { return p.id == id; });
+    },
+    addProduct: async function(product) {
+        product.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('products').insert(mapFromTable(product));
+        }
+    },
+    updateProduct: async function(id, updatedData) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('products').update(mapFromTable(updatedData)).eq('id', id);
+        }
+    },
+    deleteProduct: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('products').delete().eq('id', id);
+        }
+    },
+
+    // ==================== ORDERS ====================
+    getOrders: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('orders').select('*');
+        return mapArrayToTable(res.data || []);
+    },
+    addOrder: async function(order) {
+        order.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('orders').insert(mapFromTable(order));
+        }
+    },
+    deleteOrder: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('orders').delete().eq('id', id);
+        }
+    },
+
+    // ==================== INQUIRIES ====================
+    getInquiries: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('inquiries').select('*');
+        return mapArrayToTable(res.data || []);
+    },
+    addInquiry: async function(inquiry) {
+        inquiry.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('inquiries').insert(mapFromTable(inquiry));
+        }
+    },
+    deleteInquiry: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('inquiries').delete().eq('id', id);
+        }
+    },
+
+    // ==================== PV REPORTS ====================
+    getPVReports: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('pv_reports').select('*');
+        return mapArrayToTable(res.data || []);
+    },
+    addPVReport: async function(report) {
+        report.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('pv_reports').insert(mapFromTable(report));
+        }
+    },
+    deletePVReport: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('pv_reports').delete().eq('id', id);
+        }
+    },
+
+    // ==================== SITE SETTINGS ====================
+    getSiteSettings: async function() {
+        var isEnglish = window.location.pathname.includes('/en/');
         var defaultSettings = isEnglish ? {
-            siteName: "EndoCare Yemen",
-            siteEmail: "info@endocare-ye.com",
-            sitePhone: "+967 712 345 678",
-            siteAddress: "Hadda Street, Al-Barakah Commercial Building, Sana'a",
-            siteDesc: "Your trusted partner for supplying certified medical vitamins and hormones in Yemen.",
-            siteFb: "https://facebook.com/endocare",
-            siteWa: "https://wa.me/967712345678",
-            siteTg: "https://telegram.me/endocare",
-            siteLi: "https://linkedin.com/company/endocare"
+            siteName: 'NovaCare Yemen',
+            siteEmail: 'import@novacareplus.com',
+            sitePhone: '+967-777967272',
+            siteAddress: 'Hadda Street, Al-Barakah Commercial Building, Sana\'a',
+            siteDesc: 'Your trusted partner for supplying certified medical vitamins and hormones in Yemen.',
+            siteFb: 'https://facebook.com/novacare',
+            siteWa: 'https://wa.me/967777967272',
+            siteTg: 'https://telegram.me/novacare',
+            siteLi: 'https://linkedin.com/company/novacare'
         } : {
-            siteName: "EndoCare اليمن",
-            siteEmail: "info@endocare-ye.com",
-            sitePhone: "+967 712 345 678",
-            siteAddress: "شارع حدة، مبنى البركة التجاري، صنعاء",
-            siteDesc: "شريكك الموثوق لتوريد الفيتامينات والهرمونات الطبية المعتمدة في اليمن.",
-            siteFb: "https://facebook.com/endocare",
-            siteWa: "https://wa.me/967712345678",
-            siteTg: "https://telegram.me/endocare",
-            siteLi: "https://linkedin.com/company/endocare"
+            siteName: 'NovaCare اليمن',
+            siteEmail: 'import@novacareplus.com',
+            sitePhone: '+967-777967272',
+            siteAddress: 'شارع حدة، مبنى البركة التجاري، صنعاء',
+            siteDesc: 'شريكك الموثوق لتوريد الفيتامينات والهرمونات الطبية المعتمدة في اليمن.',
+            siteFb: 'https://facebook.com/novacare',
+            siteWa: 'https://wa.me/967777967272',
+            siteTg: 'https://telegram.me/novacare',
+            siteLi: 'https://linkedin.com/company/novacare'
         };
-        var stored = localStorage.getItem("endocare_settings");
-        if(stored) {
-            return Object.assign({}, defaultSettings, JSON.parse(stored));
+        var sb = getSupabase();
+        if (!sb) return defaultSettings;
+        var res = await sb.from('site_settings').select('*').eq('id', 1).single();
+        if (!res.error && res.data) {
+            return Object.assign({}, defaultSettings, mapToTable(res.data));
         }
         return defaultSettings;
     },
-    saveSiteSettings: function(settings) {
-        localStorage.setItem("endocare_settings", JSON.stringify(settings));
-    },
-    saveArticles: function(articles) {
-        localStorage.setItem("endocare_articles", JSON.stringify(articles));
-    },
-    addArticle: function(article) {
-        const articles = this.getArticles();
-        article.id = Date.now();
-        articles.push(article);
-        this.saveArticles(articles);
-    },
-    updateArticle: function(id, updatedData) {
-        const articles = this.getArticles();
-        const index = articles.findIndex(a => a.id == id);
-        if (index !== -1) {
-            articles[index] = { ...articles[index], ...updatedData };
-            this.saveArticles(articles);
+    saveSiteSettings: async function(settings) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('site_settings').upsert(Object.assign({ id: 1 }, mapFromTable(settings)), { onConflict: 'id' });
         }
     },
-    deleteArticle: function(id) {
-        let articles = this.getArticles();
-        articles = articles.filter(a => a.id != id);
-        this.saveArticles(articles);
-    },
 
-    // API for Products
-    getProducts: function() {
-        return JSON.parse(localStorage.getItem("endocare_products")) || [];
+    // ==================== BOT ALERTS ====================
+    getBotAlerts: async function() {
+        var sb = getSupabase();
+        if (!sb) return [];
+        var res = await sb.from('bot_alerts').select('*');
+        return mapArrayToTable(res.data || []);
     },
-    getFeaturedProducts: function() {
-        return this.getProducts().filter(p => p.featured === 'yes' && p.status === 'نشط');
-    },
-    getProductById: function(id) {
-        return this.getProducts().find(p => p.id == id);
-    },
-    saveProducts: function(products) {
-        localStorage.setItem("endocare_products", JSON.stringify(products));
-    },
-    addProduct: function(product) {
-        const products = this.getProducts();
-        product.id = Date.now();
-        products.push(product);
-        this.saveProducts(products);
-    },
-    updateProduct: function(id, updatedData) {
-        const products = this.getProducts();
-        const index = products.findIndex(p => p.id == id);
-        if (index !== -1) {
-            products[index] = { ...products[index], ...updatedData };
-            this.saveProducts(products);
+    addBotAlert: async function(alert) {
+        alert.id = Date.now();
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('bot_alerts').insert(mapFromTable(alert));
         }
     },
-    deleteProduct: function(id) {
-        let products = this.getProducts();
-        products = products.filter(p => p.id != id);
-        this.saveProducts(products);
-    },
-
-    // API for Orders
-    getOrders: function() {
-        return JSON.parse(localStorage.getItem("endocare_orders")) || [];
-    },
-    saveOrders: function(orders) {
-        localStorage.setItem("endocare_orders", JSON.stringify(orders));
-    },
-    addOrder: function(order) {
-        const orders = this.getOrders();
-        order.id = Date.now();
-        orders.push(order);
-        this.saveOrders(orders);
-    },
-    deleteOrder: function(id) {
-        let orders = this.getOrders();
-        orders = orders.filter(o => o.id != id);
-        this.saveOrders(orders);
-    },
-
-    // API for Inquiries
-    getInquiries: function() {
-        return JSON.parse(localStorage.getItem("endocare_inquiries")) || [];
-    },
-    saveInquiries: function(inquiries) {
-        localStorage.setItem("endocare_inquiries", JSON.stringify(inquiries));
-    },
-    addInquiry: function(inquiry) {
-        const inquiries = this.getInquiries();
-        inquiry.id = Date.now();
-        inquiries.push(inquiry);
-        this.saveInquiries(inquiries);
-    },
-    deleteInquiry: function(id) {
-        let inquiries = this.getInquiries();
-        inquiries = inquiries.filter(i => i.id != id);
-        this.saveInquiries(inquiries);
-    },
-
-    // API for PV Reports
-    getPVReports: function() {
-        return JSON.parse(localStorage.getItem("endocare_pv_reports")) || [];
-    },
-    savePVReports: function(reports) {
-        localStorage.setItem("endocare_pv_reports", JSON.stringify(reports));
-    },
-    addPVReport: function(report) {
-        const reports = this.getPVReports();
-        report.id = Date.now();
-        reports.push(report);
-        this.savePVReports(reports);
-    },
-    deletePVReport: function(id) {
-        let reports = this.getPVReports();
-        reports = reports.filter(r => r.id != id);
-        this.savePVReports(reports);
+    markBotAlertSeen: async function(id) {
+        var sb = getSupabase();
+        if (sb) {
+            await sb.from('bot_alerts').update({ seen: true }).eq('id', id);
+        }
     }
 };
 
 window.db = db;
+
+initSupabase();

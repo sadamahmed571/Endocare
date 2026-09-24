@@ -1,5 +1,5 @@
 /**
- * Site DB Sync Configuration for EndoBot
+ * Site DB Sync Configuration for NovaBot
  * This module provides mapping and integration logic between the bot's core 
  * and the main website's storage (e.g., localStorage, Database APIs).
  */
@@ -7,8 +7,8 @@
 const SiteSyncConfig = {
     // Defines paths and access methods for website's dynamic content
     dbSources: {
-        products: "endocare_products", // localStorage key used in the website
-        articles: "endocare_articles"  // localStorage key for blog/articles
+        products: "novacare_products", // localStorage key used in the website
+        articles: "novacare_articles"  // localStorage key for blog/articles
     },
 
     /**

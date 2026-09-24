@@ -1,5 +1,5 @@
 /******************************************************
- * EndoCare Service Page - Product Catalog Engine
+ * NovaCare Service Page - Product Catalog Engine
  * المرحلة 2: كتالوج المنتجات الذكي
  ******************************************************/
 
@@ -302,9 +302,7 @@
 
   const isEnglish = window.location.pathname.includes('/en/');
 
-  // دمج مع بيانات لوحة التحكم إن وجدت (Fallback logic)
-  const adminProducts = window.db && window.db.getProducts ? window.db.getProducts().filter(p => p.status === 'نشط' || !p.status) : [];
-  const products = adminProducts.length > 0 ? adminProducts : mockProducts;
+  let products = [...mockProducts];
 
   /* =====================================================
      2. HORMONE THERAPEUTIC CLASSES
@@ -638,7 +636,7 @@
             <a href="#" class="btn btn-sm text-green product-action-btn" title="${isEnglish ? 'Request Sample' : 'طلب عينة'}">
               <i class="bi bi-droplet-half"></i>
             </a>
-            <a href="https://wa.me/967712345678" class="btn btn-sm text-green product-action-btn" title="${isEnglish ? 'Quick Inquiry' : 'استفسار سريع'}">
+            <a href="https://wa.me/967777967272" class="btn btn-sm text-green product-action-btn" title="${isEnglish ? 'Quick Inquiry' : 'استفسار سريع'}">
               <i class="bi bi-chat-dots"></i>
             </a>
 			<a href="#" class="btn btn-sm text-green product-action-btn" title="${isEnglish ? 'More Details' : 'تفاصيل أكثر'}">
@@ -681,7 +679,7 @@
             <div class="hormone-class-products">
               <small class="text-muted">${names}</small>
             </div>
-            <a href="https://wa.me/967770249300?text=${isEnglish ? 'I%20want%20to%20inquire%20about%20' + encodeURIComponent(dispTitle) + '%20products%20from%20Endocare' : '%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%85%D9%86%D8%AA%D8%AC%D8%A7%D8%AA%20' + encodeURIComponent(dispTitle) + '%20%D9%85%D9%86%20%D8%A5%D9%86%D8%AF%D9%88%D9%83%D9%8A%D8%B1'}" target="_blank" class="hormone-whatsapp-btn">
+            <a href="https://wa.me/967777967272?text=${isEnglish ? 'I%20want%20to%20inquire%20about%20' + encodeURIComponent(dispTitle) + '%20products%20from%20NovaCare' : '%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%85%D9%86%D8%AA%D8%AC%D8%A7%D8%AA%20' + encodeURIComponent(dispTitle) + '%20%D9%85%D9%86%20%D8%A5%D9%86%D8%AF%D9%88%D9%83%D9%8A%D8%B1'}" target="_blank" class="hormone-whatsapp-btn">
               <i class="bi bi-whatsapp"></i>${isEnglish ? 'Contact Sales' : 'تواصل بالمبيعات'}
             </a>
           </div>
@@ -697,7 +695,6 @@
   function applyFilters() {
     let results = [...products];
 
-    // Search
     const q = state.searchQuery.trim().toLowerCase();
     if (q) {
       results = results.filter(
@@ -712,19 +709,16 @@
       );
     }
 
-    // Filter by form
     if (state.activeFilters.form.length > 0) {
       results = results.filter((p) => state.activeFilters.form.includes(p.form));
     }
 
-    // Filter by badges
     if (state.activeFilters.badges.length > 0) {
       results = results.filter((p) =>
         state.activeFilters.badges.some((b) => p.badges.includes(b))
       );
     }
 
-    // Filter by origin
     if (state.activeFilters.origin.length > 0) {
       results = results.filter((p) => state.activeFilters.origin.includes(p.origin));
     }
@@ -798,9 +792,7 @@
       dom.searchInput.value = '';
       dom.clearSearch.classList.add('d-none');
       dom.searchResults.classList.add('d-none');
-      // filter to show only vitamins and apply
       state.activeFilterTab = 'vitamins';
-      // We'll handle this via a special filter
     } else if (tab === 'hormones') {
       state.activeFilterTab = 'hormones';
       state.activeFilters.badges = [];
@@ -818,19 +810,16 @@
     applyFilters();
   }
 
-  // Override applyFilters to handle tabs
   const originalApplyFilters = applyFilters;
   applyFilters = function () {
     let results = [...products];
 
-    // Tab filter
     if (state.activeFilterTab === 'vitamins') {
       results = results.filter((p) => p.category === 'vitamin');
     } else if (state.activeFilterTab === 'hormones') {
       results = results.filter((p) => p.category === 'hormone');
     }
 
-    // Search
     const q = state.searchQuery.trim().toLowerCase();
     if (q) {
       results = results.filter(
@@ -845,19 +834,16 @@
       );
     }
 
-    // Filter by form
     if (state.activeFilters.form.length > 0) {
       results = results.filter((p) => state.activeFilters.form.includes(p.form));
     }
 
-    // Filter by badges
     if (state.activeFilters.badges.length > 0) {
       results = results.filter((p) =>
         state.activeFilters.badges.some((b) => p.badges.includes(b))
       );
     }
 
-    // Filter by origin
     if (state.activeFilters.origin.length > 0) {
       results = results.filter((p) => state.activeFilters.origin.includes(p.origin));
     }
@@ -877,18 +863,29 @@
   /* =====================================================
      10. INIT
      ===================================================== */
-  function init() {
+  async function init() {
     cacheDom();
 
-    // Init state
+    if (window.db && window.db.getProducts) {
+      try {
+        const dbProducts = await window.db.getProducts();
+        const activeProducts = dbProducts.filter(p => p.status === 'نشط' || !p.status);
+        if (activeProducts.length > 0) {
+          products = activeProducts;
+          state.filteredProducts = [...products];
+        }
+      } catch (e) {
+        console.error('Failed to load products from DB:', e);
+      }
+    }
+
     state.activeFilterTab = 'all';
 
-    // Render
     renderFilters();
     renderHormoneGrid();
     applyFilters();
 
-    // Search events
+    // events
     if (dom.searchInput) {
       dom.searchInput.addEventListener('input', handleSearchInput);
       dom.searchInput.addEventListener('focus', function () {
@@ -908,13 +905,11 @@
       dom.clearSearch.addEventListener('click', clearSearch);
     }
 
-    // Tab buttons
     dom.tabButtons.forEach((btn) => {
       btn.addEventListener('click', handleTabClick);
     });
   }
 
-  // Wait for DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

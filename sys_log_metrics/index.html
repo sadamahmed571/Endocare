@@ -3,18 +3,19 @@
 
 <head>
     <meta charset="utf-8">
-    <title>لوحة التحكم - EndoCare اليمن</title>
+    <title>لوحة التحكم - NovaCare اليمن</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
+    <meta content="لوحة التحكم, NovaCare, إدارة المحتوى, مقالات, منتجات, طلبات توريد, إعدادات الموقع" name="keywords">
+    <meta content="لوحة التحكم - NovaCare اليمن | إدارة المحتوى والمنتجات والمقالات وطلبات التوريد وإعدادات الموقع." name="description">
 
-    <link href="img/favicon.ico" rel="icon">
+    <link href="../img/favicon.ico" rel="icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Cairo:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.4/font/bootstrap-icons.css">
-    <link href="css/style.css" rel="stylesheet">
+    <link href="../ar/css/style.css" rel="stylesheet">
+    <script type="module" src="../js/env.js"></script>
 </head>
 
 <body>
@@ -25,21 +26,25 @@
     <div class="admin-login-overlay" id="adminLogin">
         <div class="admin-login-box">
             <div class="login-logo">
-                <img src="img/logo.png" alt="EndoCare">
+                <img src="../img/logo.png" alt="NovaCare" loading="lazy">
             </div>
             <h3 class="login-title">لوحة التحكم</h3>
             <p class="login-sub">أدخل بيانات الدخول لإدارة الموقع</p>
-            <form onsubmit="event.preventDefault(); document.getElementById('adminLogin').style.display='none'; document.getElementById('adminWrapper').style.display='flex';">
+            <form onsubmit="event.preventDefault(); checkLogin();">
                 <div class="admin-form-group">
                     <label>البريد الإلكتروني</label>
-                    <input type="email" class="form-control" placeholder="admin@endocare-ye.com" value="admin@endocare-ye.com">
+                    <input type="email" id="loginEmail" class="form-control" placeholder="البريد الإلكتروني">
                 </div>
                 <div class="admin-form-group">
                     <label>كلمة المرور</label>
-                    <input type="password" class="form-control" placeholder="••••••••" value="123456">
+                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" value="">
                 </div>
-                <button type="submit" class="login-btn">تسجيل الدخول</button>
-                <p class="text-center mt-3" style="font-size: 12px; color: var(--bs-gray);">للاختبار: اضغط دخول</p>
+                <div class="admin-form-group" style="display:flex;align-items:center;gap:8px;margin-top:-4px;margin-bottom:12px;">
+                    <input type="checkbox" id="loginRemember" style="width:16px;height:16px;">
+                    <label for="loginRemember" style="margin:0;cursor:pointer;">تذكرني على هذا المتصفح</label>
+                </div>
+                <div id="loginError" style="color: #dc3545; font-size: 13px; margin-bottom: 10px; display: none;">البريد الإلكتروني أو كلمة المرور غير صحيحة</div>
+                <button type="submit" class="login-btn" id="loginBtn">تسجيل الدخول</button>
             </form>
         </div>
     </div>
@@ -53,8 +58,8 @@
         <!-- SIDEBAR -->
         <aside class="admin-sidebar" id="adminSidebar">
             <div class="admin-sidebar-header">
-                <img src="img/logo3.png" alt="EndoCare" onerror="this.src='img/logo3.png'; this.onerror=null;">
-                <h6>إندوكير | لوحة التحكم</h6>
+                <img src="../img/logo3.png" alt="NovaCare" onerror="this.src='../img/logo3.png'; this.onerror=null;" loading="lazy">
+                <h6>نوفاكير | لوحة التحكم</h6>
             </div>
 
             <div class="nav-label">الرئيسية</div>
@@ -83,6 +88,10 @@
                 <i class="bi bi-envelope"></i> الاستفسارات
                 <span class="status-badge pending" style="margin-right: auto; display: none;">0</span>
             </a>
+            <a class="nav-item" data-section="botAlerts" onclick="switchSection('botAlerts')">
+                <i class="bi bi-robot"></i> تنبيهات البوت
+                <span class="status-badge urgent" style="margin-right: auto; display: none;">0</span>
+            </a>
             <a class="nav-item" data-section="pv" onclick="switchSection('pv')">
                 <i class="bi bi-shield-exclamation"></i> التيقظ الدوائي
                 <span class="status-badge urgent" style="margin-right: auto; display: none;">0</span>
@@ -93,8 +102,8 @@
             <a class="nav-item" data-section="settings" onclick="switchSection('settings')">
                 <i class="bi bi-gear"></i> إعدادات الموقع
             </a>
-            <a class="nav-item" data-section="users" onclick="switchSection('users')">
-                <i class="bi bi-shield-lock"></i> المستخدمين
+            <a class="nav-item" data-section="email" onclick="switchSection('email')">
+                <i class="bi bi-envelope-paper"></i> البريد الإلكتروني
             </a>
 
             <div class="nav-item admin-logout-btn" onclick="logout()">
@@ -114,7 +123,7 @@
                     <h4 id="pageTitle">لوحة الإحصائيات</h4>
                 </div>
                 <div class="admin-topbar-left">
-                    <a href="home.html" style="color: var(--bs-dark); margin-left: 15px;" title="العودة للموقع">
+                    <a href="../ar/home.html" style="color: var(--bs-dark); margin-left: 15px;" title="العودة للموقع">
                         <i class="bi bi-house-door" style="font-size: 22px;"></i>
                     </a>
                     <div class="admin-notif">
@@ -123,7 +132,7 @@
                     </div>
                     <div class="admin-user">
                         <div class="admin-user-avatar"><i class="bi bi-person-fill"></i></div>
-                        <span class="admin-user-name">مشرف الموقع</span>
+                        <span class="admin-user-name" id="adminUserName">المستخدم</span>
                     </div>
                 </div>
             </div>
@@ -394,6 +403,38 @@
             </section>
 
             <!-- ============================================ -->
+            <!-- SECTION: BOT ALERTS -->
+            <!-- ============================================ -->
+            <section class="admin-section" id="sec-botAlerts">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h5>تنبيهات تعطل البوت</h5>
+                        <button class="admin-btn admin-btn-outline" type="button" onclick="renderBotAlertsTable()">
+                            <i class="bi bi-arrow-repeat"></i> تحديث
+                        </button>
+                    </div>
+                    <div class="admin-card-body">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الوقت</th>
+                                    <th>الصفحة</th>
+                                    <th>السبب</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-bot-alerts-tbody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">لا توجد تنبيهات حالياً</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
             <!-- SECTION: PHARMACOVIGILANCE -->
             <!-- ============================================ -->
             <section class="admin-section" id="sec-pv">
@@ -402,7 +443,7 @@
                         <div class="admin-stat-card">
                             <div class="admin-stat-icon" style="background:#fce4ec;color:#e91e63;"><i class="bi bi-exclamation-triangle"></i></div>
                             <div class="admin-stat-info">
-                                <h3>0</h3>
+                                <h3 id="pv-stat-high">0</h3>
                                 <span>بلاغات عالية الخطورة</span>
                             </div>
                         </div>
@@ -411,7 +452,7 @@
                         <div class="admin-stat-card">
                             <div class="admin-stat-icon" style="background:#e3f2fd;color:#2196f3;"><i class="bi bi-shield-check"></i></div>
                             <div class="admin-stat-info">
-                                <h3>0</h3>
+                                <h3 id="pv-stat-closed">0</h3>
                                 <span>بلاغات تم إغلاقها</span>
                             </div>
                         </div>
@@ -420,43 +461,8 @@
                         <div class="admin-stat-card">
                             <div class="admin-stat-icon" style="background:#fff3e0;color:#ff9800;"><i class="bi bi-search"></i></div>
                             <div class="admin-stat-info">
-                                <h3>0</h3>
+                                <h3 id="pv-stat-investigating">0</h3>
                                 <span>قيد التحقيق</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="admin-card mb-4">
-                    <div class="admin-card-header">
-                        <h5>تحليل الشكاوي الواردة</h5>
-                    </div>
-                    <div class="admin-card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <div class="admin-chart-placeholder" style="height: 250px;">
-                                    <i class="bi bi-pie-chart-fill ms-2" style="font-size: 20px;"></i> رسم بياني لتوزيع الشكاوي
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <ul class="list-group list-group-flush text-end" style="font-size: 14px;">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                                        <span><i class="bi bi-circle-fill text-danger me-2" style="font-size:10px;"></i> عرض جانبي غير متوقع</span>
-                                        <span class="badge bg-secondary rounded-pill">0 %</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
-                                        <span><i class="bi bi-circle-fill text-warning me-2" style="font-size:10px;"></i> نقص فعالية</span>
-                                        <span class="badge bg-secondary rounded-pill">0 %</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
-                                        <span><i class="bi bi-circle-fill text-info me-2" style="font-size:10px;"></i> مشكلة جودة/تغليف</span>
-                                        <span class="badge bg-secondary rounded-pill">0 %</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
-                                        <span><i class="bi bi-circle-fill text-success me-2" style="font-size:10px;"></i> أخرى</span>
-                                        <span class="badge bg-secondary rounded-pill">0 %</span>
-                                    </li>
-                                </ul>
                             </div>
                         </div>
                     </div>
@@ -494,9 +500,42 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="admin-card mb-4">
+                    <div class="admin-card-header">
+                        <h5>تحليل الشكاوي الواردة</h5>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="admin-chart-placeholder" style="height: 250px;">
+                                    <i class="bi bi-pie-chart-fill ms-2" style="font-size: 20px;"></i> رسم بياني لتوزيع الشكاوي
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <ul class="list-group list-group-flush text-end" style="font-size: 14px;">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                                        <span><i class="bi bi-circle-fill text-danger me-2" style="font-size:10px;"></i> عرض جانبي غير متوقع</span>
+                                        <span class="badge bg-secondary rounded-pill" id="pv-analysis-unexpected">0 %</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
+                                        <span><i class="bi bi-circle-fill text-warning me-2" style="font-size:10px;"></i> نقص فعالية</span>
+                                        <span class="badge bg-secondary rounded-pill" id="pv-analysis-efficacy">0 %</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
+                                        <span><i class="bi bi-circle-fill text-info me-2" style="font-size:10px;"></i> مشكلة جودة/تغليف</span>
+                                        <span class="badge bg-secondary rounded-pill" id="pv-analysis-quality">0 %</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-top">
+                                        <span><i class="bi bi-circle-fill text-success me-2" style="font-size:10px;"></i> أخرى</span>
+                                        <span class="badge bg-secondary rounded-pill" id="pv-analysis-other">0 %</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
-
-
 
             <!-- ============================================ -->
             <!-- SECTION: SETTINGS -->
@@ -511,17 +550,17 @@
                             <div class="admin-form-row">
                                 <div class="admin-form-group">
                                     <label class="form-label">اسم الموقع</label>
-                                    <input type="text" id="setting-siteName" class="form-control" value="EndoCare اليمن">
+                                    <input type="text" id="setting-siteName" class="form-control" value="NovaCare اليمن">
                                 </div>
                                 <div class="admin-form-group">
                                     <label class="form-label">البريد الإلكتروني</label>
-                                    <input type="email" id="setting-siteEmail" class="form-control" value="info@endocare-ye.com">
+                                    <input type="email" id="setting-siteEmail" class="form-control" value="import@novacareplus.com">
                                 </div>
                             </div>
                             <div class="admin-form-row">
                                 <div class="admin-form-group">
                                     <label class="form-label">رقم الهاتف</label>
-                                    <input type="text" id="setting-sitePhone" class="form-control" value="+967 712 345 678">
+                                    <input type="text" id="setting-sitePhone" class="form-control" value="+967-777967272">
                                 </div>
                                 <div class="admin-form-group">
                                     <label class="form-label">العنوان</label>
@@ -535,28 +574,28 @@
                             <div class="admin-form-group">
                                 <label class="form-label">شعار الموقع</label>
                                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                                    <img src="img/logo2.png" id="setting-siteLogoPreview" style="height:50px;border-radius:6px;border:1px solid var(--color-teal-100);">
+                                    <img src="../img/logo2.png" id="setting-siteLogoPreview" style="height:50px;border-radius:6px;border:1px solid var(--color-teal-100);" loading="lazy">
                                     <button class="admin-btn admin-btn-outline" type="button" onclick="alert('خاصية رفع الشعار قيد التطوير.')">تغيير الشعار</button>
                                 </div>
                             </div>
                             <div class="admin-form-row">
                                 <div class="admin-form-group">
                                     <label class="form-label">رابط فيسبوك</label>
-                                    <input type="url" id="setting-siteFb" class="form-control" value="https://facebook.com/endocare">
+                                    <input type="url" id="setting-siteFb" class="form-control" value="https://facebook.com/novacare">
                                 </div>
                                 <div class="admin-form-group">
                                     <label class="form-label">رابط واتساب</label>
-                                    <input type="url" id="setting-siteWa" class="form-control" value="https://wa.me/967712345678">
+                                    <input type="url" id="setting-siteWa" class="form-control" value="https://wa.me/967777967272">
                                 </div>
                             </div>
                             <div class="admin-form-row">
                                 <div class="admin-form-group">
                                     <label class="form-label">رابط تيليجرام</label>
-                                    <input type="url" id="setting-siteTg" class="form-control" value="https://telegram.me/endocare">
+                                    <input type="url" id="setting-siteTg" class="form-control" value="https://telegram.me/novacare">
                                 </div>
                                 <div class="admin-form-group">
                                     <label class="form-label">رابط لينكدإن</label>
-                                    <input type="url" id="setting-siteLi" class="form-control" value="https://linkedin.com/company/endocare">
+                                    <input type="url" id="setting-siteLi" class="form-control" value="https://linkedin.com/company/novacare">
                                 </div>
                             </div>
                             <div style="margin-top:20px;">
@@ -568,42 +607,95 @@
             </section>
 
             <!-- ============================================ -->
-            <!-- SECTION: USERS -->
+            <!-- SECTION: EMAIL -->
             <!-- ============================================ -->
-            <section class="admin-section" id="sec-users">
-                <div class="admin-card">
+            <section class="admin-section" id="sec-email">
+                <div class="admin-card mb-4">
                     <div class="admin-card-header">
-                        <h5>إدارة المستخدمين</h5>
-                        <button class="admin-btn admin-btn-primary"><i class="bi bi-plus-lg"></i> مستخدم جديد</button>
+                        <h5>إدارة البريد الإلكتروني</h5>
+                        <a href="https://mail.zoho.com/zm/#mail/folder/inbox" target="_blank" rel="noopener noreferrer" class="admin-btn admin-btn-primary">
+                            <i class="bi bi-envelope-open"></i> تصفح البريد
+                        </a>
                     </div>
                     <div class="admin-card-body">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>اسم المستخدم</th>
-                                    <th>البريد الإلكتروني</th>
-                                    <th>الصلاحية</th>
-                                    <th>آخر دخول</th>
-                                    <th>الحالة</th>
-                                    <th>إجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>مشرف الموقع</td>
-                                    <td>admin@endocare-ye.com</td>
-                                    <td><span class="status-badge active">Admin</span></td>
-                                    <td>2026-06-10 09:15</td>
-                                    <td><span class="status-badge active">نشط</span></td>
-                                    <td><a class="admin-action-btn" href="#"><i class="bi bi-pencil"></i></a><a class="admin-action-btn danger" href="#"><i class="bi bi-slash-circle"></i></a></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="row g-3">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="admin-stat-card h-100">
+                                    <div class="admin-stat-icon" style="background:#e3f2fd;color:#105978;"><i class="bi bi-inbox"></i></div>
+                                    <div class="admin-stat-info">
+                                        <h3>0</h3>
+                                        <span>رسائل الوارد</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="admin-stat-card h-100">
+                                    <div class="admin-stat-icon" style="background:#e8f5e9;color:#168a68;"><i class="bi bi-send"></i></div>
+                                    <div class="admin-stat-info">
+                                        <h3>0</h3>
+                                        <span>رسائل قيد الإرسال</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="admin-stat-card h-100">
+                                    <div class="admin-stat-icon" style="background:#fff8e1;color:#f39c12;"><i class="bi bi-link-45deg"></i></div>
+                                    <div class="admin-stat-info">
+                                        <h3>Zoho</h3>
+                                        <span>الخدمة المرتبطة</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mt-1">
+                            <div class="col-lg-6">
+                                <div class="admin-card h-100">
+                                    <div class="admin-card-header">
+                                        <h5>أدوات سريعة</h5>
+                                    </div>
+                                    <div class="admin-card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="https://mail.zoho.com/zm/#mail/folder/inbox" target="_blank" rel="noopener noreferrer" class="admin-btn admin-btn-primary">
+                                                <i class="bi bi-envelope-open"></i> تصفح البريد
+                                            </a>
+                                            <button type="button" class="admin-btn admin-btn-outline" onclick="alert('هذا المكان مخصص لاحقًا للردود السريعة أو الربط مع أدوات الأتمتة.')">
+                                                <i class="bi bi-diagram-3"></i> ربط أدوات الرد
+                                            </button>
+                                            <button type="button" class="admin-btn admin-btn-outline" onclick="alert('يمكن إضافة القوالب والتواقيع من هنا مستقبلاً.')">
+                                                <i class="bi bi-layout-text-window-reverse"></i> قوالب البريد
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="admin-card h-100">
+                                    <div class="admin-card-header">
+                                        <h5>حالة الربط</h5>
+                                    </div>
+                                    <div class="admin-card-body">
+                                        <div class="admin-form-group mb-3">
+                                            <label class="form-label">البريد المعتمد</label>
+                                            <input type="email" class="form-control" value="import@novacareplus.com" readonly>
+                                        </div>
+                                        <div class="admin-form-group mb-3">
+                                            <label class="form-label">البوابة</label>
+                                            <input type="text" class="form-control" value="Zoho Mail" readonly>
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label class="form-label">ملاحظات تشغيلية</label>
+                                            <textarea class="form-control" rows="4" readonly>واجهة منخفضة التعقيد ومهيأة للربط لاحقًا مع API أو Webhooks أو صندوق دعم متعدد الأقسام.</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
+
+
 
         </main>
     </div>
@@ -636,17 +728,23 @@
                     </div>
                     <div class="admin-form-group">
                         <label>المحرر / الكاتب *</label>
-                        <select id="articleEditor" class="form-control">
+                        <select id="articleEditor" class="form-control" onchange="toggleCustomEditor()">
                             <option value="د. أمل الصبري">د. أمل الصبري</option>
                             <option value="د. خالد العنسي">د. خالد العنسي</option>
                             <option value="د. محمد الحزمي">د. محمد الحزمي</option>
                             <option value="م. عبدالرحمن النهاري">م. عبدالرحمن النهاري</option>
+                            <option value="__custom__">--- مخصص (كتابة يدوية) ---</option>
                         </select>
+                        <input type="text" id="articleEditorCustom" class="form-control mt-2" placeholder="اكتب اسم المحرر" style="display:none;">
                     </div>
                 </div>
                 <div class="admin-form-group">
-                    <label>رابط الصورة المميزة</label>
-                    <input type="text" id="articleImage" class="form-control" placeholder="img/carousel-1.jpg">
+                    <label>الصورة المميزة</label>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <input type="file" id="articleImageInput" class="form-control" accept="image/*" onchange="previewArticleImage(event)">
+                        <img id="articleImagePreview" style="height:60px;border-radius:6px;border:1px solid var(--color-teal-100);display:none;object-fit:cover;" loading="lazy">
+                        <input type="hidden" id="articleImage" value="">
+                    </div>
                 </div>
                 <div class="admin-form-group">
                     <label>ملخص المقال</label>
@@ -719,7 +817,7 @@
                 <div class="admin-form-row">
                     <div class="admin-form-group">
                         <label>بلد المنشأ</label>
-                        <select id="prodOrigin" class="form-control">
+                        <select id="prodOrigin" class="form-control" onchange="toggleCustomOrigin()">
                             <option value="USA">USA</option>
                             <option value="Germany">Germany</option>
                             <option value="Switzerland">Switzerland</option>
@@ -727,7 +825,9 @@
                             <option value="China">China</option>
                             <option value="France">France</option>
                             <option value="UK">UK</option>
+                            <option value="__custom__">--- مخصص (كتابة يدوية) ---</option>
                         </select>
+                        <input type="text" id="prodOriginCustom" class="form-control mt-2" placeholder="اكتب اسم البلد" style="display:none;">
                     </div>
                     <div class="admin-form-group">
                         <label>الشكل الدوائي</label>
@@ -767,6 +867,14 @@
                     <label>الوصف</label>
                     <textarea id="prodDesc" class="form-control" rows="3" placeholder="وصف المنتج"></textarea>
                 </div>
+                <div class="admin-form-group">
+                    <label>صورة المنتج</label>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <input type="file" id="prodImageInput" class="form-control" accept="image/*" onchange="previewProdImage(event)">
+                        <img id="prodImagePreview" style="height:60px;border-radius:6px;border:1px solid var(--color-teal-100);display:none;object-fit:cover;" loading="lazy">
+                        <input type="hidden" id="prodImage" value="">
+                    </div>
+                </div>
             </div>
             <div class="admin-modal-footer">
                 <button class="admin-btn admin-btn-primary" onclick="saveProduct()"><i class="bi bi-check-lg"></i> حفظ</button>
@@ -776,14 +884,72 @@
     </div>
 
 
+    <!-- ============================================ -->
+    <!-- MODAL: Order Preview -->
+    <!-- ============================================ -->
+    <div class="admin-modal-overlay" id="orderPreviewModal">
+        <div class="admin-modal" style="max-width:700px;">
+            <div class="admin-modal-header">
+                <h5>تفاصيل طلب التوريد</h5>
+                <button class="admin-modal-close" onclick="closeModal('orderPreviewModal')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <table class="admin-table" style="font-size:14px;">
+                    <tr><td style="font-weight:600;width:160px;">المنشأة</td><td id="op-facilityName"></td></tr>
+                    <tr><td style="font-weight:600;">النشاط</td><td id="op-facilityType"></td></tr>
+                    <tr><td style="font-weight:600;">رقم الترخيص</td><td id="op-licenseNumber"></td></tr>
+                    <tr><td style="font-weight:600;">تصنيف الطلب</td><td id="op-orderCategory"></td></tr>
+                    <tr><td style="font-weight:600;">تكرارية الطلب</td><td id="op-frequency"></td></tr>
+                    <tr><td style="font-weight:600;">تاريخ التوريد</td><td id="op-deliveryDate"></td></tr>
+                    <tr><td style="font-weight:600;">عدد المنتجات</td><td id="op-itemsCount"></td></tr>
+                    <tr><td style="font-weight:600;">تاريخ الطلب</td><td id="op-date"></td></tr>
+                    <tr><td style="font-weight:600;">الحالة</td><td id="op-status"></td></tr>
+                    <tr><td style="font-weight:600;">ملاحظات</td><td id="op-notes"></td></tr>
+                </table>
+            </div>
+            <div class="admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('orderPreviewModal')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL: PV Report Preview -->
+    <!-- ============================================ -->
+    <div class="admin-modal-overlay" id="pvPreviewModal">
+        <div class="admin-modal" style="max-width:700px;">
+            <div class="admin-modal-header">
+                <h5>تفاصيل بلاغ التيقظ الدوائي</h5>
+                <button class="admin-modal-close" onclick="closeModal('pvPreviewModal')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <table class="admin-table" style="font-size:14px;">
+                    <tr><td style="font-weight:600;width:160px;">رقم التذكرة</td><td id="pp-ticket"></td></tr>
+                    <tr><td style="font-weight:600;">المنتج</td><td id="pp-product"></td></tr>
+                    <tr><td style="font-weight:600;">رقم التشغيلة</td><td id="pp-batch"></td></tr>
+                    <tr><td style="font-weight:600;">نوع الحدث</td><td id="pp-eventType"></td></tr>
+                    <tr><td style="font-weight:600;">التاريخ</td><td id="pp-date"></td></tr>
+                    <tr><td style="font-weight:600;">الأولوية</td><td id="pp-severity"></td></tr>
+                    <tr><td style="font-weight:600;">الحالة</td><td id="pp-status"></td></tr>
+                    <tr><td style="font-weight:600;">المبلّغ</td><td id="pp-reporter"></td></tr>
+                </table>
+            </div>
+            <div class="admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('pvPreviewModal')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- SCRIPTS -->
-    <script src="js/db.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script src="../js/db.js"></script>
     <script>
     // Load Articles dynamically
-    function renderArticlesTable() {
+    async function renderArticlesTable() {
         const tbody = document.getElementById('admin-articles-tbody');
         if (!tbody) return;
-        const articles = window.db.getArticles();
+        const articles = await window.db.getArticles();
         tbody.innerHTML = '';
         
         // Update stats card for published articles
@@ -812,7 +978,7 @@
                     <td><span class="status-badge ${statusClass}">${a.statusLabel}</span></td>
                     <td>
                         <a class="admin-action-btn" href="javascript:void(0)" onclick="editArticle(${a.id})" title="تعديل"><i class="bi bi-pencil"></i></a>
-                        <a class="admin-action-btn" href="single-blog.html?id=${a.id}" target="_blank" title="معاينة"><i class="bi bi-eye"></i></a>
+                        <a class="admin-action-btn" href="../ar/single-blog.html?id=${a.id}" target="_blank" title="معاينة"><i class="bi bi-eye"></i></a>
                         <a class="admin-action-btn danger" href="javascript:void(0)" onclick="deleteArticle(${a.id})" title="حذف"><i class="bi bi-trash"></i></a>
                     </td>
                 </tr>
@@ -820,36 +986,104 @@
         });
     }
 
-    function editArticle(id) {
-        const article = window.db.getArticleById(id);
+    function toggleCustomEditor() {
+        var sel = document.getElementById('articleEditor');
+        var custom = document.getElementById('articleEditorCustom');
+        custom.style.display = sel.value === '__custom__' ? 'block' : 'none';
+        if (sel.value === '__custom__') custom.focus();
+    }
+
+    function toggleCustomOrigin() {
+        var sel = document.getElementById('prodOrigin');
+        var custom = document.getElementById('prodOriginCustom');
+        custom.style.display = sel.value === '__custom__' ? 'block' : 'none';
+        if (sel.value === '__custom__') custom.focus();
+    }
+
+    function previewArticleImage(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('articleImagePreview').src = e.target.result;
+            document.getElementById('articleImagePreview').style.display = 'block';
+            document.getElementById('articleImage').value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function previewProdImage(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('prodImagePreview').src = e.target.result;
+            document.getElementById('prodImagePreview').style.display = 'block';
+            document.getElementById('prodImage').value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function getArticleEditorValue() {
+        var sel = document.getElementById('articleEditor');
+        if (sel.value === '__custom__') {
+            return document.getElementById('articleEditorCustom').value.trim() || 'محرر';
+        }
+        return sel.value;
+    }
+
+    function setArticleEditorValue(val) {
+        var sel = document.getElementById('articleEditor');
+        var custom = document.getElementById('articleEditorCustom');
+        var found = false;
+        for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === val) { sel.value = val; found = true; break; }
+        }
+        if (!found) {
+            sel.value = '__custom__';
+            custom.value = val;
+            custom.style.display = 'block';
+        } else {
+            custom.style.display = 'none';
+        }
+    }
+
+    async function editArticle(id) {
+        const article = await window.db.getArticleById(id);
         if(!article) return;
         document.getElementById('editArticleId').value = article.id;
         document.getElementById('articleTitle').value = article.title;
         document.getElementById('articleCategory').value = article.category;
-        document.getElementById('articleEditor').value = article.editor;
-        document.getElementById('articleImage').value = article.image;
+        setArticleEditorValue(article.editor);
+        document.getElementById('articleImage').value = article.image || '';
+        if (article.image && article.image.startsWith('data:')) {
+            document.getElementById('articleImagePreview').src = article.image;
+            document.getElementById('articleImagePreview').style.display = 'block';
+        } else {
+            document.getElementById('articleImagePreview').style.display = 'none';
+        }
         document.getElementById('articleExcerpt').value = article.excerpt;
-        document.getElementById('articleContent').value = article.content || '';
-        document.getElementById('articleRefs').value = article.refs || '';
+        document.getElementById('articleContent').value = article.content || 'لوحة التحكم';
+        document.getElementById('articleRefs').value = article.refs || 'لوحة التحكم';
         document.getElementById('articleStatus').value = article.status;
         document.getElementById('articleDate').value = article.date;
         openModal('articleModal');
     }
 
-    function saveArticle() {
+    async function saveArticle() {
         const id = document.getElementById('editArticleId').value;
         const selCat = document.getElementById('articleCategory');
-        const catLabel = selCat.options[selCat.selectedhome].text;
+        const catLabel = selCat.options[selCat.selectedIndex].text;
         
         const selStatus = document.getElementById('articleStatus');
-        const statusLabel = selStatus.options[selStatus.selectedhome].text;
+        const statusLabel = selStatus.options[selStatus.selectedIndex].text;
 
         const data = {
             title: document.getElementById('articleTitle').value,
             category: selCat.value,
             categoryLabel: catLabel,
-            editor: document.getElementById('articleEditor').value,
-            image: document.getElementById('articleImage').value || 'img/carousel-1.jpg',
+            editor: getArticleEditorValue(),
+            image: document.getElementById('articleImage').value || '',
             excerpt: document.getElementById('articleExcerpt').value,
             content: document.getElementById('articleContent').value,
             refs: document.getElementById('articleRefs').value,
@@ -859,26 +1093,26 @@
         };
 
         if (id) {
-            window.db.updateArticle(id, data);
+            await window.db.updateArticle(id, data);
         } else {
-            window.db.addArticle(data);
+            await window.db.addArticle(data);
         }
         closeModal('articleModal');
         renderArticlesTable();
     }
 
-    function deleteArticle(id) {
+    async function deleteArticle(id) {
         if(confirm("هل أنت متأكد من حذف هذا المقال؟")) {
-            window.db.deleteArticle(id);
+            await window.db.deleteArticle(id);
             renderArticlesTable();
         }
     }
 
     // --- Products Logic ---
-    function renderProductsTable() {
+    async function renderProductsTable() {
         const tbody = document.getElementById('admin-products-tbody');
         if (!tbody) return;
-        const products = window.db.getProducts();
+        const products = await window.db.getProducts();
         tbody.innerHTML = '';
         
         if (products.length === 0) {
@@ -915,36 +1149,48 @@
         document.getElementById('prodCas').value = '';
         document.getElementById('prodCategory').value = 'Vitamin';
         document.getElementById('prodOrigin').value = 'USA';
+        document.getElementById('prodOriginCustom').value = '';
+        document.getElementById('prodOriginCustom').style.display = 'none';
         document.getElementById('prodForm').value = 'Powder';
         document.getElementById('prodStatus').value = 'نشط';
         document.getElementById('prodDesc').value = '';
         document.getElementById('featuredYes').checked = false;
         document.getElementById('featuredNo').checked = true;
+        document.getElementById('prodImage').value = '';
+        document.getElementById('prodImagePreview').style.display = 'none';
     }
 
-    function editProduct(id) {
-        const product = window.db.getProductById(id);
+    async function editProduct(id) {
+        const product = await window.db.getProductById(id);
         if(!product) return;
         document.getElementById('editProductId').value = product.id;
         document.getElementById('prodNameAr').value = product.nameAr;
         document.getElementById('prodNameEn').value = product.nameEn;
-        document.getElementById('prodCas').value = product.cas || '';
+        document.getElementById('prodCas').value = product.cas || 'لوحة التحكم';
         document.getElementById('prodCategory').value = product.category;
-        document.getElementById('prodOrigin').value = product.origin;
-        document.getElementById('prodForm').value = product.form || 'Powder';
+        setOriginValue(product.origin);
+        document.getElementById('prodForm').value = product.form || 'لوحة التحكم';
         document.getElementById('prodStatus').value = product.status;
-        document.getElementById('prodDesc').value = product.desc || '';
+        document.getElementById('prodDesc').value = product.desc || 'لوحة التحكم';
         
         if (product.featured === 'yes') {
             document.getElementById('featuredYes').checked = true;
         } else {
             document.getElementById('featuredNo').checked = true;
         }
+
+        if (product.image && product.image.startsWith('data:')) {
+            document.getElementById('prodImagePreview').src = product.image;
+            document.getElementById('prodImagePreview').style.display = 'block';
+            document.getElementById('prodImage').value = product.image;
+        } else {
+            document.getElementById('prodImagePreview').style.display = 'none';
+        }
         
         openModal('productModal');
     }
 
-    function saveProduct() {
+    async function saveProduct() {
         const id = document.getElementById('editProductId').value;
         const featured = document.querySelector('input[name="prodFeatured"]:checked').value;
         
@@ -953,11 +1199,12 @@
             nameEn: document.getElementById('prodNameEn').value,
             cas: document.getElementById('prodCas').value,
             category: document.getElementById('prodCategory').value,
-            origin: document.getElementById('prodOrigin').value,
+            origin: getOriginValue(),
             form: document.getElementById('prodForm').value,
             status: document.getElementById('prodStatus').value,
             desc: document.getElementById('prodDesc').value,
-            featured: featured
+            featured: featured,
+            image: document.getElementById('prodImage').value || ''
         };
 
         if (!data.nameAr || !data.nameEn) {
@@ -966,26 +1213,26 @@
         }
 
         if (id) {
-            window.db.updateProduct(id, data);
+            await window.db.updateProduct(id, data);
         } else {
-            window.db.addProduct(data);
+            await window.db.addProduct(data);
         }
         closeModal('productModal');
         renderProductsTable();
     }
 
-    function deleteProduct(id) {
+    async function deleteProduct(id) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-            window.db.deleteProduct(id);
+            await window.db.deleteProduct(id);
             renderProductsTable();
         }
     }
 
     // --- Orders Logic ---
-    function renderOrdersTable() {
+    async function renderOrdersTable() {
         const tbody = document.getElementById('admin-orders-tbody');
         if (!tbody) return;
-        const orders = window.db.getOrders();
+        const orders = await window.db.getOrders();
         tbody.innerHTML = '';
         
         if (orders.length === 0) {
@@ -1003,7 +1250,7 @@
                     <td>${o.itemsCount}</td>
                     <td><span class="status-badge ${o.status === 'جديد' ? 'urgent' : 'review'}">${o.status}</span></td>
                     <td>
-                        <a class="admin-action-btn" href="#" title="عرض"><i class="bi bi-eye"></i></a>
+                        <a class="admin-action-btn" href="javascript:void(0)" onclick="previewOrder(${o.id})" title="عرض"><i class="bi bi-eye"></i></a>
                         <a class="admin-action-btn danger" href="javascript:void(0)" onclick="deleteOrder(${o.id})" title="حذف"><i class="bi bi-trash"></i></a>
                     </td>
                 </tr>
@@ -1011,18 +1258,35 @@
         });
     }
 
-    function deleteOrder(id) {
+    async function previewOrder(id) {
+        const orders = await window.db.getOrders();
+        const o = orders.find(function(ord) { return ord.id == id; });
+        if (!o) return;
+        document.getElementById('op-facilityName').textContent = o.facilityName || '---';
+        document.getElementById('op-facilityType').textContent = o.facilityType || '---';
+        document.getElementById('op-licenseNumber').textContent = o.licenseNumber || '---';
+        document.getElementById('op-orderCategory').textContent = o.orderCategory || '---';
+        document.getElementById('op-frequency').textContent = o.frequency || '---';
+        document.getElementById('op-deliveryDate').textContent = o.deliveryDate || '---';
+        document.getElementById('op-itemsCount').textContent = o.itemsCount || '0';
+        document.getElementById('op-date').textContent = o.date || '---';
+        document.getElementById('op-status').textContent = o.status || '---';
+        document.getElementById('op-notes').textContent = o.notes || '---';
+        openModal('orderPreviewModal');
+    }
+
+    async function deleteOrder(id) {
         if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
-            window.db.deleteOrder(id);
+            await window.db.deleteOrder(id);
             renderOrdersTable();
         }
     }
 
     // --- Inquiries Logic ---
-    function renderInquiriesTable() {
+    async function renderInquiriesTable() {
         const tbody = document.getElementById('admin-inquiries-tbody');
         if (!tbody) return;
-        const inquiries = window.db.getInquiries();
+        const inquiries = await window.db.getInquiries();
         tbody.innerHTML = '';
         
         if (inquiries.length === 0) {
@@ -1047,22 +1311,73 @@
         });
     }
 
-    function deleteInquiry(id) {
+    async function deleteInquiry(id) {
         if(confirm("هل أنت متأكد من حذف هذا الاستفسار؟")) {
-            window.db.deleteInquiry(id);
+            await window.db.deleteInquiry(id);
             renderInquiriesTable();
         }
     }
 
+    // --- Bot Alerts Logic ---
+    async function renderBotAlertsTable() {
+        const tbody = document.getElementById('admin-bot-alerts-tbody');
+        if (!tbody || !window.db) return;
+        const alerts = window.db.getBotAlerts ? await window.db.getBotAlerts() : [];
+        tbody.innerHTML = '';
+
+        if (!alerts.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">لا توجد تنبيهات حالياً</td></tr>';
+            return;
+        }
+
+        alerts.slice().reverse().forEach((a, idx) => {
+            const time = a.createdAt ? new Date(a.createdAt).toLocaleString('ar-SA') : '---';
+            const page = a.page || '---';
+            const reason = a.reason || a.message || '---';
+            const seen = a.seen ? 'تمت المراجعة' : 'جديد';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${time}</td>
+                    <td>${page}</td>
+                    <td>${reason}</td>
+                    <td><span class="status-badge ${a.seen ? 'completed' : 'urgent'}">${seen}</span></td>
+                </tr>
+            `;
+        });
+    }
+
     // --- PV Reports Logic ---
-    function renderPVTable() {
+    async function updatePVStats() {
+        var reports = await window.db.getPVReports();
+        var high = reports.filter(function(r) { return r.severity === 'عالية'; }).length;
+        var closed = reports.filter(function(r) { return r.status === 'تم الإغلاق'; }).length;
+        var investigating = reports.filter(function(r) { return r.status === 'قيد التحقيق'; }).length;
+        document.getElementById('pv-stat-high').textContent = high;
+        document.getElementById('pv-stat-closed').textContent = closed;
+        document.getElementById('pv-stat-investigating').textContent = investigating;
+
+        // Update analysis chart
+        var total = reports.length || 1;
+        var unexpected = reports.filter(function(r) { return r.eventType && r.eventType.indexOf('جانبي') !== -1; }).length;
+        var efficacy = reports.filter(function(r) { return r.eventType && (r.eventType.indexOf('فعالية') !== -1 || r.eventType.indexOf('efficacy') !== -1); }).length;
+        var quality = reports.filter(function(r) { return r.eventType && (r.eventType.indexOf('جودة') !== -1 || r.eventType.indexOf('quality') !== -1); }).length;
+        var other = total - unexpected - efficacy - quality;
+        document.getElementById('pv-analysis-unexpected').textContent = Math.round(unexpected/total*100) + ' %';
+        document.getElementById('pv-analysis-efficacy').textContent = Math.round(efficacy/total*100) + ' %';
+        document.getElementById('pv-analysis-quality').textContent = Math.round(quality/total*100) + ' %';
+        document.getElementById('pv-analysis-other').textContent = Math.round(other/total*100) + ' %';
+    }
+
+    async function renderPVTable() {
         const tbody = document.getElementById('admin-pv-tbody');
         if (!tbody) return;
-        const reports = window.db.getPVReports();
+        const reports = await window.db.getPVReports();
         tbody.innerHTML = '';
         
         if (reports.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">لا توجد بلاغات تيقظ دوائي حالياً</td></tr>';
+            updatePVStats();
             return;
         }
 
@@ -1077,47 +1392,81 @@
                     <td><span class="status-badge ${rep.severity === 'عالية' ? 'urgent' : 'pending'}">${rep.severity}</span></td>
                     <td><span class="status-badge ${rep.status === 'جديد' ? 'pending' : 'completed'}">${rep.status}</span></td>
                     <td>
-                        <a class="admin-action-btn" href="#" title="عرض"><i class="bi bi-eye"></i></a>
+                        <a class="admin-action-btn" href="javascript:void(0)" onclick="previewPV(${rep.id})" title="عرض"><i class="bi bi-eye"></i></a>
                         <a class="admin-action-btn danger" href="javascript:void(0)" onclick="deletePV(${rep.id})" title="حذف"><i class="bi bi-trash"></i></a>
                     </td>
                 </tr>
             `;
         });
+        updatePVStats();
     }
 
-    function deletePV(id) {
+    async function previewPV(id) {
+        const reports = await window.db.getPVReports();
+        var rep = reports.find(function(r) { return r.id == id; });
+        if (!rep) return;
+        document.getElementById('pp-ticket').textContent = rep.ticket || '---';
+        document.getElementById('pp-product').textContent = rep.product || '---';
+        document.getElementById('pp-batch').textContent = rep.batch || '---';
+        document.getElementById('pp-eventType').textContent = rep.eventType || '---';
+        document.getElementById('pp-date').textContent = rep.date || '---';
+        document.getElementById('pp-severity').textContent = rep.severity || '---';
+        document.getElementById('pp-status').textContent = rep.status || '---';
+        document.getElementById('pp-reporter').textContent = rep.reporter || '---';
+        openModal('pvPreviewModal');
+    }
+
+    async function deletePV(id) {
         if(confirm("هل أنت متأكد من حذف هذا البلاغ؟")) {
-            window.db.deletePVReport(id);
+            await window.db.deletePVReport(id);
             renderPVTable();
         }
     }
 
-    // Call on load
-    document.addEventListener("DOMContentLoaded", () => {
+
+    // Call on load (Wait for Supabase Native Auth)
+    window.addEventListener("supabase_auth_ready", async () => {
+        loadRememberedLogin();
+        // Initialize DB (sync Supabase to localStorage)
+        if (window.db) {
+            await window.db.init();
+        }
+        // Auth check using new auth system
+        if (window.auth && window.auth.isLoggedIn()) {
+            document.getElementById('adminLogin').style.display = 'none';
+            document.getElementById('adminWrapper').style.display = 'flex';
+            syncAdminUserName();
+        } else {
+            // Fallback for visual state (ensure wrapper hides)
+            document.getElementById('adminWrapper').style.display = 'none';
+            document.getElementById('adminLogin').style.display = 'flex';
+        }
         renderArticlesTable();
         renderProductsTable();
         renderOrdersTable();
         renderInquiriesTable();
+        renderBotAlertsTable();
         renderPVTable();
-        loadAdminSettings();
+        updatePVStats();
+        if (typeof loadAdminSettings === 'function') loadAdminSettings();
     });
 
     // Site Settings Logic
-    function loadAdminSettings() {
+    async function loadAdminSettings() {
         if(!window.db) return;
-        const settings = window.db.getSiteSettings();
-        document.getElementById('setting-siteName').value = settings.siteName || '';
-        document.getElementById('setting-siteEmail').value = settings.siteEmail || '';
-        document.getElementById('setting-sitePhone').value = settings.sitePhone || '';
-        document.getElementById('setting-siteAddress').value = settings.siteAddress || '';
-        document.getElementById('setting-siteDesc').value = settings.siteDesc || '';
-        document.getElementById('setting-siteFb').value = settings.siteFb || '';
-        document.getElementById('setting-siteWa').value = settings.siteWa || '';
-        document.getElementById('setting-siteTg').value = settings.siteTg || '';
-        document.getElementById('setting-siteLi').value = settings.siteLi || '';
+        const settings = await window.db.getSiteSettings();
+        document.getElementById('setting-siteName').value = settings.siteName || 'لوحة التحكم';
+        document.getElementById('setting-siteEmail').value = settings.siteEmail || 'لوحة التحكم';
+        document.getElementById('setting-sitePhone').value = settings.sitePhone || 'لوحة التحكم';
+        document.getElementById('setting-siteAddress').value = settings.siteAddress || 'لوحة التحكم';
+        document.getElementById('setting-siteDesc').value = settings.siteDesc || 'لوحة التحكم';
+        document.getElementById('setting-siteFb').value = settings.siteFb || 'لوحة التحكم';
+        document.getElementById('setting-siteWa').value = settings.siteWa || 'لوحة التحكم';
+        document.getElementById('setting-siteTg').value = settings.siteTg || 'لوحة التحكم';
+        document.getElementById('setting-siteLi').value = settings.siteLi || 'لوحة التحكم';
     }
 
-    function saveAdminSettings() {
+    async function saveAdminSettings() {
         if(!window.db) return;
         const settings = {
             siteName: document.getElementById('setting-siteName').value,
@@ -1130,7 +1479,7 @@
             siteTg: document.getElementById('setting-siteTg').value,
             siteLi: document.getElementById('setting-siteLi').value
         };
-        window.db.saveSiteSettings(settings);
+        await window.db.saveSiteSettings(settings);
         alert('تم حفظ الإعدادات بنجاح. سيتم تطبيقها فوراً على جميع صفحات الموقع.');
     }
 
@@ -1148,9 +1497,10 @@
             team: 'فريق العمل',
             orders: 'طلبات التوريد',
             inquiries: 'الاستفسارات',
+            botAlerts: 'تنبيهات البوت',
             pv: 'بلاغات التيقظ الدوائي',
             settings: 'إعدادات الموقع',
-            users: 'المستخدمين'
+            email: 'البريد الإلكتروني'
         };
         document.getElementById('pageTitle').textContent = titles[id] || 'لوحة التحكم';
 
@@ -1169,7 +1519,11 @@
         document.getElementById('articleTitle').value = '';
         document.getElementById('articleCategory').value = 'market';
         document.getElementById('articleEditor').value = 'د. أمل الصبري';
+        document.getElementById('articleEditorCustom').value = '';
+        document.getElementById('articleEditorCustom').style.display = 'none';
+        document.getElementById('articleImageInput').value = '';
         document.getElementById('articleImage').value = '';
+        document.getElementById('articleImagePreview').style.display = 'none';
         document.getElementById('articleExcerpt').value = '';
         document.getElementById('articleContent').value = '';
         document.getElementById('articleRefs').value = '';
@@ -1195,9 +1549,61 @@
         });
     });
 
-    // Logout
-    function logout() {
+    // --- Auth (Supabase-based) -------------------------------------------------
+    function loadRememberedLogin() {
+        var rememberFlag = localStorage.getItem('novacare_admin_remember_me') === 'true';
+        var rememberedEmail = localStorage.getItem('novacare_admin_remember_email') || '';
+        document.getElementById('loginRemember').checked = rememberFlag;
+        document.getElementById('loginEmail').value = rememberFlag ? rememberedEmail : '';
+    }
+
+    function syncAdminUserName() {
+        var sessionUser = window.auth && window.auth.getSessionUser ? window.auth.getSessionUser() : null;
+        var nameEl = document.getElementById('adminUserName');
+        if (nameEl) nameEl.textContent = (sessionUser && sessionUser.username) ? sessionUser.username : 'المستخدم';
+    }
+
+    async function checkLogin() {
+        var email = document.getElementById('loginEmail').value.trim();
+        var password = document.getElementById('loginPassword').value;
+        var rememberMe = document.getElementById('loginRemember').checked;
+        var errorEl = document.getElementById('loginError');
+        var btn = document.getElementById('loginBtn');
+
+        if (!email || !password) {
+            errorEl.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري تسجيل الدخول...';
+
+        var result = await window.auth.login(email, password);
+
+        btn.disabled = false;
+        btn.innerHTML = 'تسجيل الدخول';
+
+        if (result.error) {
+            errorEl.textContent = result.error;
+            errorEl.style.display = 'block';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginPassword').focus();
+        } else {
+            if (window.auth && window.auth.setRememberedLogin) {
+                window.auth.setRememberedLogin(email, rememberMe);
+            }
+            document.getElementById('adminLogin').style.display = 'none';
+            document.getElementById('adminWrapper').style.display = 'flex';
+            document.getElementById('loginPassword').value = '';
+            errorEl.style.display = 'none';
+            syncAdminUserName();
+        }
+    }
+
+    async function logout() {
         if (confirm('تأكيد تسجيل الخروج؟')) {
+            window.auth.logout();
             document.getElementById('adminWrapper').style.display = 'none';
             document.getElementById('adminLogin').style.display = 'flex';
         }

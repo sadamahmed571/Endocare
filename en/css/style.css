@@ -178,12 +178,10 @@ h6,
   z-index: 99999;
 }
 
-#spinner.show {
-  transition:
-    opacity 0.5s ease-out,
-    visibility 0s linear 0s;
-  visibility: visible;
-  opacity: 1;
+#spinner, #spinner.show {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 /*** Button ***/
@@ -326,16 +324,39 @@ h6,
 
 .navbar .navbar-nav .nav-link {
   margin-right: 35px;
-  padding: 18px 0;
+  padding: 8px 0;
   color: var(--bs-dark);
   font-size: 16px;
   font-weight: 500;
   outline: none;
+  
+  position: relative; 
+  transition: color 0.3s ease;
+  border-radius: 0 !important; 
+}
+
+ 
+.navbar .navbar-nav .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: var(--gradient-primary); 
+  transition: width 0.3s ease;
+  border-radius: 0; 
 }
 
 .navbar .navbar-nav .nav-link:hover,
 .navbar .navbar-nav .nav-link.active {
   color: var(--bs-primary);
+}
+
+ 
+.navbar .navbar-nav .nav-link:hover::after,
+.navbar .navbar-nav .nav-link.active::after {
+  width: 100%;
 }
 
 .navbar .dropdown-toggle::after {
@@ -365,11 +386,11 @@ h6,
 
   /* Swap logo (left) and toggler (right) on mobile */
   .navbar .navbar-brand.d-lg-none {
-    order: 2;
+    order: 1;
     margin-right: 0;
   }
   .navbar .navbar-toggler {
-    order: 1;
+    order: 2;
     margin-right: 0;
     background: var(--color-teal-50);
     color: var(--color-teal-300);
@@ -407,27 +428,37 @@ h6,
   }
 }
 
-/* Navbar Search Area */
+/* Navbar Search Area (Desktop Only) */
 .nav-search-container {
   display: flex;
+  position: relative;
+  align-items: center;
 }
 .nav-search-input {
-  width: 0;
+  position: absolute !important;
+  top: calc(100% + 14px);
+  left: 0;
+  width: 260px !important;
+  height: 40px;
   opacity: 0;
-  padding: 0;
-  border: none;
-  background: var(--color-teal-50);
-  border-radius: 20px;
+  padding: 0 16px !important;
+  border: 1px solid var(--color-teal-100);
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
   visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-10px);
+  z-index: 1050;
 }
 .nav-search-input.active {
-  width: 180px;
-  opacity: 1;
-  padding: 6px 16px;
-  visibility: visible;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto;
+  transform: translateY(0);
+  border-color: var(--bs-primary);
 }
 
 /*** Hero Header ***/
@@ -564,7 +595,7 @@ h6,
 .page-header {
   background:
     linear-gradient(135deg, rgba(3, 30, 44, 0.7), rgba(5, 59, 42, 0.7)),
-    url(../img/testimonial.jpg) center center no-repeat;
+    url(../../img/10.png) center center no-repeat;
   background-size: cover;
 }
 
@@ -823,6 +854,7 @@ h6,
     display: block;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: auto !important;
     overflow: hidden !important;
   }
   
@@ -856,15 +888,23 @@ h6,
     max-width: 100% !important;
     padding: 6px 0 !important;
     border: none !important;
-    text-align: right !important;
+    text-align: left !important;
     box-sizing: border-box !important;
   }
   
-  #itemsTable td input.form-control,
-  #itemsTable td select.form-select,
-  #itemsTable td div {
+  #itemsTable td input,
+  #itemsTable td select {
     max-width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
+  }
+  
+  #itemsTable td .d-flex {
+    gap: 0.5rem !important;
+  }
+  
+  #itemsTable td .form-check-inline {
+    margin-right: 0.5rem;
   }
   
   /* Add label prefix before inputs to know what fields they are since headers are hidden */
@@ -905,8 +945,8 @@ h6,
     padding-bottom: 1.5rem !important;
   }
   
-  .container,
-  .container-fluid {
+  .container:not(.px-0),
+  .container-fluid:not(.px-0) {
     padding-left: 10px !important;
     padding-right: 10px !important;
   }
@@ -937,12 +977,11 @@ h6,
     font-size: 13px !important;
   }
 }
-
 /* Mobile bottom bar: search + language */
 .mobile-nav-bar {
   display: flex;
-  height: 36px;
-  border-bottom: 1px solid var(--color-teal-100);
+  height: 32px;
+  margin-top: 8px;
   margin-bottom: 8px;
   padding-bottom: 8px;
   width: 100%;
@@ -953,12 +992,12 @@ h6,
   flex: 0 0 80%;
   max-width: 80%;
   position: relative;
-  padding-left: 6px;
+  padding-right: 6px;
 }
 
 .mobile-search-input {
   width: 100%;
-  height: 36px;
+  height: 32px;
   border: 1px solid var(--color-teal-100);
   border-radius: 6px;
   padding: 0 32px 0 8px;
@@ -977,8 +1016,8 @@ h6,
 
 .mobile-search-icon {
   position: absolute;
-  right: 12px;
-  top: 50%;
+  right: 22px;
+  top: 70%;
   transform: translateY(-50%);
   color: var(--bs-gray);
   font-size: 15px;
@@ -988,7 +1027,7 @@ h6,
 .mobile-lang-btn {
   flex: 0 0 20%;
   max-width: 20%;
-  height: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -996,9 +1035,10 @@ h6,
   border: 1px solid var(--color-teal-100);
   border-radius: 6px;
   color: var(--bs-primary);
-  font-size: 18px;
+  font-size: 14px;
   text-decoration: none;
   transition: all 0.2s;
+  gap:5px;
 }
 
 .mobile-lang-btn:hover {
@@ -1006,7 +1046,6 @@ h6,
   color: #fff;
   border-color: var(--bs-primary);
 }
-
 /*** Service ***/
 .container-service {
   position: relative;
@@ -1404,7 +1443,7 @@ h6,
   display: block;
   margin-bottom: 5px;
   padding: 0;
-  text-align: right;
+  text-align: left;
   color: rgba(255, 255, 255, 0.5);
   font-weight: normal;
   text-transform: capitalize;
@@ -1414,7 +1453,7 @@ h6,
 
 .footer .btn.btn-link::before {
   position: relative;
-  content: "\F284";
+ content: "\F280";
   font-family: "bootstrap-icons";
   color: rgba(255, 255, 255, 0.5);
   margin-right: 10px;
@@ -1491,7 +1530,7 @@ h6,
 .Pharmacovigilance-fab i {
   line-height: 1;
 }
-/*** Endocare AI Chatbot ***/
+/*** NovaCare AI Chatbot ***/
 .chatbot-fab {
   position: fixed;
   bottom: 35px;
@@ -1553,7 +1592,7 @@ h6,
     font-size: 20px;
   }
 
-  /* تنسيق زر Endocare AI Chatbot */
+  /* تنسيق زر NovaCare AI Chatbot */
   .chatbot-fab {
     width: auto;
     min-width: 120px;
@@ -1566,7 +1605,7 @@ h6,
     transform: translateX(-79px); /* Collapsed state on mobile */
   }
 
-  /* تنسيق أيقونة زر Endocare AI Chatbot */
+  /* تنسيق أيقونة زر NovaCare AI Chatbot */
   .chatbot-fab i {
     font-size: 20px;
   }
@@ -1824,6 +1863,13 @@ h6,
   }
 }
 
+.typing-status {
+  font-size: 12px;
+  color: var(--bs-gray);
+  margin-right: 8px;
+  align-self: center;
+}
+
 /* Quick Replies */
 .chatbot-quick-replies {
   display: flex;
@@ -1918,64 +1964,65 @@ h6,
   padding-left: 4px;
 }
 
-/*** Chatbot Responsive <= 480px ***/
-@media (max-width: 480px) {
+/*** Chatbot Responsive <= 576px ***/
+@media (max-width: 576px) {
   .chatbot-overlay {
-    bottom: 75px;
-    left: 15px;
-    width: 330px;
-    max-width: calc(100vw - 30px);
-    height: 450px;
-    max-height: calc(100vh - 140px);
-    border-radius: 14px;
+    bottom: 60px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: calc(100vw - 20px);
+    height: 440px;
+    max-height: calc(100vh - 110px);
+    border-radius: 12px;
   }
   .chatbot-header {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
   .chatbot-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 17px;
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
   }
   .chatbot-title {
-    font-size: 12px;
+    font-size: 13px;
   }
   .chatbot-status {
-    font-size: 10px;
+    font-size: 9.5px;
   }
   .chatbot-messages {
-    padding: 12px 12px 6px;
+    padding: 10px 10px 4px;
   }
   .message-bubble {
     font-size: 11px;
-    padding: 8px 12px;
+    padding: 7px 10px;
   }
   .quick-reply-btn {
-    font-size: 10px;
-    padding: 3px 8px !important;
+    font-size: 9.5px;
+    padding: 2px 6px !important;
   }
   .chatbot-input {
-    font-size: 13px;
+    font-size: 12px;
   }
   .chatbot-input::placeholder {
-    font-size: 11px;
+    font-size: 10.5px;
   }
   .chatbot-send-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
   }
   .chatbot-input-area {
-    padding: 10px 12px 14px;
+    padding: 8px 10px 10px;
   }
   .chatbot-input {
-    height: 50px;
+    height: 44px;
   }
   .chatbot-input-wrapper {
-    padding: 6px 6px 6px 12px;
+    padding: 4px 4px 4px 10px;
   }
   .chatbot-quick-replies {
-    padding: 6px 12px 10px;
+    padding: 4px 10px 8px;
   }
 }
 
@@ -2463,15 +2510,15 @@ h6,
 }
 
 .pharma-card.card-hospitals::before {
-  background-image: url("../img/about-1.jpg");
+  background-image: url("../../img/4.png");
 }
 
 .pharma-card.card-pharmacies::before {
-  background-image: url("../img/about-2.jpg");
+  background-image: url("../../img/5.png");
 }
 
 .pharma-card.card-manufacturers::before {
-  background-image: url("../img/about-3.jpg");
+  background-image: url("../../img/3.png");
 }
 
 .pharma-card:hover::before {
@@ -6131,3 +6178,53 @@ h6,
   border-radius: 8px !important;
 }
 
+/* Related Articles */
+.related-articles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 4px;
+}
+.related-article-btn {
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--color-teal-50, #e8f5e9);
+  color: var(--color-teal-700, #00796b);
+  text-decoration: none;
+  border: 1px solid var(--color-teal-200, #b2dfdb);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.related-article-btn:hover {
+  background: var(--color-teal-100, #c8e6c9);
+  color: var(--color-teal-800, #004d40);
+  border-color: var(--color-teal-300, #80cbc4);
+}
+
+/* ========== TEMPORARILY HIDDEN - START ========== */
+/* Re-enable by removing these rules */
+
+/* 1. Company address & location (footer) */
+p:has(> .site-address-text) { display: none !important; }
+
+/* 2. Newsletter section (footer) */
+.footer .row.g-5 > .col-sm-12:last-child { display: none !important; }
+
+/* 3. Branch address lines (contact page) */
+.branch-card ul li:first-of-type { display: none !important; }
+
+/* 4. Google Maps iframes (contact page) */
+.map-wrapper iframe { display: none !important; }
+
+/* ========== TEMPORARILY HIDDEN - END ========== */
+
+/* Disable WOW animations per user request */
+.wow {
+  visibility: visible !important;
+  animation: none !important;
+  opacity: 1 !important;
+}

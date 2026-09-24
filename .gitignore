@@ -6,3 +6,19 @@ coverage/
 *.log
 .env*
 !.env.example
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+
+# 🔒 ملفات البيئة المحلية السرية (ممنوع رفعها صراحة)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 🌐 الملف الوحيد المسموح برفعه كنموذج فارغ للجمهور
+!.env.example

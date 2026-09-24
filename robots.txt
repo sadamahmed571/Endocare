@@ -1,0 +1,10 @@
+# Robots.txt for NovaCare Yemen
+User-agent: *
+Allow: /
+Disallow: /sys_log_metrics/
+
+# Sitemap
+Sitemap: https://novacareplus.com/sitemap.xml
+
+# Crawl-delay for gentle crawling
+Crawl-delay: 10

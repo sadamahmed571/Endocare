@@ -1,6 +1,6 @@
 {
-  "companyName": "EndoCare اليمن",
-  "legalName": "شركة إندوكير للتوريدات الدوائية",
+  "companyName": "NovaCare اليمن",
+  "legalName": "شركة نوفاكير للتوريدات الدوائية",
   "specialty": "استيراد وتوزيع الفيتامينات، الهرمونات، المواد الفعالة الصيدلانية، والمستلزمات الطبية",
   "description": "شريكك الموثوق لتوريد الفيتامينات والهرمونات الطبية المعتمدة في اليمن. نلتزم بأعلى معايير الجودة وسلسلة التبريد المتطورة.",
   "slogan": "Vital Ingredients for Better Lives",
@@ -15,9 +15,9 @@
     "mainBranch": {
       "city": "صنعاء",
       "address": "شارع حدة، مبنى البركة التجاري، الطابق الثالث، بجوار مستشفى الثورة العام",
-      "phone": "+967 712 345 678",
-      "landline": "+967 1 234 567",
-      "email": "sanaa@endocare-ye.com",
+      "phone": "+967-777967272",
+      "landline": "+967-777967272",
+      "email": "sanaa@novacareplus.com",
       "workingHours": "الأحد - الخميس: 9:00 صباحاً - 8:00 مساءً",
       "type": "المركز الرئيسي والمستودع المركزي",
       "coordinates": { "lat": 15.325997, "lng": 44.205247 }
@@ -26,9 +26,9 @@
       {
         "city": "عدن",
         "address": "مديرية المنصورة، شارع الستين، مجمع الفردوس الصحي",
-        "phone": "+967 2 345 678",
-        "mobile": "+967 712 345 679",
-        "email": "aden@endocare-ye.com",
+        "phone": "+967-777967272",
+        "mobile": "+967-777967272",
+        "email": "aden@novacareplus.com",
         "workingHours": "الأحد - الخميس: 9:00 صباحاً - 8:00 مساءً",
         "type": "مستودع إقليمي - مركز لوجستي للمحافظات الجنوبية والشرقية",
         "coordinates": { "lat": 12.833333, "lng": 45.033333 }
@@ -41,18 +41,19 @@
     ]
   },
   "contact": {
-    "customerService": "+967 712 345 678",
-    "email": "info@endocare-ye.com",
-    "sales": "+967 712 345 678",
-    "whatsapp": "https://wa.me/967712345678",
-    "technicalSupport": "+967 712 345 678"
+    "customerService": "+967-777967272",
+    "email": "import@novacareplus.com",
+    "sales": "+967-777967272",
+    "whatsapp": "https://wa.me/967777967272",
+    "technicalSupport": "+967-777967272"
   },
   "workingHours": "الأحد - الخميس: 9:00 صباحاً - 8:00 مساءً",
+  "workingHoursEn": "Sunday - Thursday: 9:00 AM - 8:00 PM",
   "socialMedia": {
-    "facebook": "https://facebook.com/endocare",
-    "telegram": "https://telegram.me/endocare",
-    "linkedin": "https://linkedin.com/company/endocare",
-    "whatsapp": "https://wa.me/967712345678"
+    "facebook": "https://facebook.com/novacare",
+    "telegram": "https://telegram.me/novacare",
+    "linkedin": "https://linkedin.com/company/novacare",
+    "whatsapp": "https://wa.me/967777967272"
   },
   "quickLinks": {
     "products": "/service.html",
